@@ -1,84 +1,115 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import Parser from "rss-parser";
 
-interface GDELTArticle {
-  url: string;
+export const dynamic = "force-dynamic";
+
+export type FeedSeverity = "critical" | "warning" | "advisory" | "info";
+
+export interface RssArticle {
+  id: string;
   title: string;
-  seendate: string;
-  socialimage: string;
-  domain: string;
-  language: string;
-  sourcecountry: string;
+  description: string;
+  link: string;
+  pubDate: string;
+  source: string;
+  imageUrl: string | null;
+  severity: FeedSeverity;
 }
 
-let cache: { data: unknown[]; query: string; timestamp: number } | null = null;
-const CACHE_TTL_MS = 15 * 60 * 1000;
+const FEED_URLS = [
+  { source: "Reuters", url: "https://feeds.reuters.com/reuters/worldNews" },
+  { source: "BBC", url: "http://feeds.bbci.co.uk/news/world/rss.xml" },
+  { source: "Al Jazeera", url: "https://www.aljazeera.com/xml/rss/all.xml" },
+];
 
-function classifySeverity(title: string): "critical" | "warning" | "advisory" {
-  const t = title.toLowerCase();
-  if (/killed|airstrike|massacre|bombing|explosion|casualties|dead/.test(t)) return "critical";
-  if (/fighting|shelling|offensive|attack|military|strike/.test(t)) return "warning";
-  return "advisory";
+let cache: { articles: RssArticle[]; lastUpdated: string; ts: number } | null = null;
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function pickImage(item: any): string | null {
+  const enc = item.enclosure;
+  if (enc && typeof enc.url === "string" && String(enc.type || "").startsWith("image")) return enc.url;
+  const mc = item["media:content"] || item["media:thumbnail"];
+  const u = mc?.$?.url || mc?.url;
+  if (typeof u === "string") return u;
+  const mth = item["media:content"];
+  if (Array.isArray(mth) && mth[0]?.$?.url) return mth[0].$.url;
+  return null;
 }
 
-function parseDate(raw: string): string {
-  try {
-    const year = raw.substring(0, 4);
-    const month = raw.substring(4, 6);
-    const day = raw.substring(6, 8);
-    const hour = raw.substring(9, 11) || "00";
-    const min = raw.substring(11, 13) || "00";
-    return new Date(`${year}-${month}-${day}T${hour}:${min}:00Z`).toISOString();
-  } catch {
-    return new Date().toISOString();
+function classifySeverity(title: string, description: string): FeedSeverity {
+  const t = `${title} ${description}`.toLowerCase();
+  if (
+    /\bkilled\b|\bexplosion\b|\battack\b|\bstrike\b|\bwar\b|\bbombing\b|\bshelling\b|\bmassacre\b|\binvasion\b/.test(
+      t
+    )
+  ) {
+    return "critical";
   }
+  if (
+    /\bmilitary\b|\bconflict\b|\btroops\b|\bweapons\b|\bmissile\b|\bceasefire\b|\boffensive\b|\bcasualties\b/.test(t)
+  ) {
+    return "warning";
+  }
+  if (/\bcrisis\b|\bemergency\b|\bdisplacement\b|\bevacuation\b|\bsanctions\b/.test(t)) {
+    return "advisory";
+  }
+  return "info";
 }
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const query = searchParams.get("query") || "Ukraine conflict";
-  const timespan = searchParams.get("timespan") || "24h";
-  const limit = parseInt(searchParams.get("limit") || "50");
+function parsePubDate(s: string | undefined): number {
+  if (!s) return 0;
+  const t = Date.parse(s);
+  return Number.isFinite(t) ? t : 0;
+}
 
-  if (cache && cache.query === query && Date.now() - cache.timestamp < CACHE_TTL_MS) {
-    return NextResponse.json({ articles: cache.data, cached: true, count: cache.data.length });
+export async function GET() {
+  if (cache && Date.now() - cache.ts < CACHE_TTL_MS) {
+    return NextResponse.json({ articles: cache.articles, lastUpdated: cache.lastUpdated, cached: true });
   }
 
-  try {
-    const url = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
-    url.searchParams.set("query", query);
-    url.searchParams.set("mode", "artlist");
-    url.searchParams.set("maxrecords", limit.toString());
-    url.searchParams.set("timespan", timespan);
-    url.searchParams.set("sort", "datedesc");
-    url.searchParams.set("format", "json");
+  const parser = new Parser();
+  const settled = await Promise.allSettled(
+    FEED_URLS.map(async ({ source, url }) => {
+      const feed = await parser.parseURL(url);
+      return { source, feed };
+    })
+  );
 
-    const res = await fetch(url.toString());
-    if (!res.ok) throw new Error(`GDELT ${res.status}`);
-    const text = await res.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      return NextResponse.json({ articles: [], count: 0 });
+  const articles: RssArticle[] = [];
+  let idx = 0;
+
+  for (const res of settled) {
+    if (res.status !== "fulfilled") {
+      console.error("[RSS] feed failed:", res.reason);
+      continue;
     }
-
-    const articles = ((data.articles || []) as GDELTArticle[]).map((a, i) => ({
-      id: `gdelt-${i}-${Date.now()}`,
-      title: a.title || "Untitled",
-      url: a.url || "",
-      imageUrl: a.socialimage || null,
-      source: a.domain || "Unknown",
-      publishedAt: parseDate(a.seendate || ""),
-      language: a.language || "English",
-      country: a.sourcecountry || "",
-      severity: classifySeverity(a.title || ""),
-    }));
-
-    cache = { data: articles, query, timestamp: Date.now() };
-    return NextResponse.json({ articles, cached: false, count: articles.length });
-  } catch (err) {
-    console.error("[GDELT]", err);
-    if (cache) return NextResponse.json({ articles: cache.data, cached: true, stale: true, count: cache.data.length });
-    return NextResponse.json({ articles: [], error: "Failed to fetch news", count: 0 }, { status: 500 });
+    const { source, feed } = res.value;
+    for (const item of feed.items || []) {
+      const title = (item.title || "Untitled").trim();
+      const description = (item.contentSnippet || item.summary || item.content || "").trim();
+      const link = item.link || item.guid || "";
+      if (!link) continue;
+      const pubDate = item.pubDate || item.isoDate || new Date().toUTCString();
+      const severity = classifySeverity(title, description);
+      const imageUrl = pickImage(item);
+      articles.push({
+        id: `rss-${source}-${idx++}-${encodeURIComponent(link).slice(0, 48)}`,
+        title,
+        description: description.slice(0, 500),
+        link,
+        pubDate,
+        source,
+        imageUrl,
+        severity,
+      });
+    }
   }
+
+  articles.sort((a, b) => parsePubDate(b.pubDate) - parsePubDate(a.pubDate));
+  const top = articles.slice(0, 30);
+  const lastUpdated = new Date().toISOString();
+
+  cache = { articles: top, lastUpdated, ts: Date.now() };
+  return NextResponse.json({ articles: top, lastUpdated, cached: false });
 }

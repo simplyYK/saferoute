@@ -16,6 +16,7 @@ interface MapState {
   center: [number, number];
   zoom: number;
   bounds: BBox | null;
+  viewCountry: string;
   activeLayers: MapLayers;
   globeLayers: GlobeLayerToggles;
   selectedRoute: RouteData | null;
@@ -25,6 +26,7 @@ interface MapState {
   setCenter: (center: [number, number]) => void;
   setZoom: (zoom: number) => void;
   setBounds: (bounds: BBox) => void;
+  setViewCountry: (country: string) => void;
   toggleLayer: (layer: keyof MapLayers) => void;
   toggleGlobeLayer: (layer: keyof GlobeLayerToggles) => void;
   setGlobeLayers: (layers: GlobeLayerToggles) => void;
@@ -37,6 +39,7 @@ export const useMapStore = create<MapState>((set) => ({
   center: [49.9935, 36.2304],
   zoom: 12,
   bounds: null,
+  viewCountry: "Ukraine",
   activeLayers: {
     conflictEvents: true,
     reports: true,
@@ -51,6 +54,7 @@ export const useMapStore = create<MapState>((set) => ({
   setCenter: (center) => set({ center }),
   setZoom: (zoom) => set({ zoom }),
   setBounds: (bounds) => set({ bounds }),
+  setViewCountry: (viewCountry) => set({ viewCountry }),
   toggleLayer: (layer) =>
     set((state) => ({
       activeLayers: { ...state.activeLayers, [layer]: !state.activeLayers[layer] },
