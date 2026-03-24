@@ -1,0 +1,16 @@
+export const RESOURCE_TYPES = [
+  { id: "hospital", icon: "🏥", label: "Hospital", color: "#DC2626" },
+  { id: "clinic", icon: "🩺", label: "Clinic", color: "#EF4444" },
+  { id: "pharmacy", icon: "💊", label: "Pharmacy", color: "#EC4899" },
+  { id: "shelter", icon: "🏠", label: "Shelter", color: "#3B82F6" },
+  { id: "bunker", icon: "🛡️", label: "Bunker", color: "#1D4ED8" },
+  { id: "water_point", icon: "💧", label: "Water Point", color: "#0EA5E9" },
+  { id: "food_distribution", icon: "🍲", label: "Food Distribution", color: "#22C55E" },
+  { id: "police_station", icon: "👮", label: "Police", color: "#1E3A5F" },
+  { id: "fire_station", icon: "🚒", label: "Fire Station", color: "#F97316" },
+  { id: "embassy", icon: "🏛️", label: "Embassy", color: "#7C3AED" },
+  { id: "ngo_office", icon: "🤝", label: "NGO Office", color: "#0891B2" },
+  { id: "transit_hub", icon: "🚌", label: "Transit Hub", color: "#6B7280" },
+  { id: "charging_station", icon: "🔌", label: "Charging Point", color: "#F59E0B" },
+  { id: "wifi_hotspot", icon: "📶", label: "WiFi Hotspot", color: "#8B5CF6" },
+] as const;
