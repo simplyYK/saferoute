@@ -34,7 +34,8 @@ interface LayerPanelProps {
 }
 
 function formatCount(n: number, singular: string) {
-  return `${n} ${singular}${n === 1 ? "" : "s"}`;
+  const s = n.toLocaleString();
+  return `${s} ${singular}${n === 1 ? "" : "s"}`;
 }
 
 export default function LayerPanel({ layers, onToggle, counts }: LayerPanelProps) {

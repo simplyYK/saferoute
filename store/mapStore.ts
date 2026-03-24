@@ -1,5 +1,9 @@
 import { create } from "zustand";
 import type { RouteData, BBox } from "@/types/map";
+import {
+  defaultGlobeLayers,
+  type GlobeLayerToggles,
+} from "@/components/globe/globe-layers";
 
 interface MapLayers {
   conflictEvents: boolean;
@@ -13,6 +17,7 @@ interface MapState {
   zoom: number;
   bounds: BBox | null;
   activeLayers: MapLayers;
+  globeLayers: GlobeLayerToggles;
   selectedRoute: RouteData | null;
   routes: RouteData[];
   isLocating: boolean;
@@ -21,6 +26,8 @@ interface MapState {
   setZoom: (zoom: number) => void;
   setBounds: (bounds: BBox) => void;
   toggleLayer: (layer: keyof MapLayers) => void;
+  toggleGlobeLayer: (layer: keyof GlobeLayerToggles) => void;
+  setGlobeLayers: (layers: GlobeLayerToggles) => void;
   setSelectedRoute: (route: RouteData | null) => void;
   setRoutes: (routes: RouteData[]) => void;
   setIsLocating: (locating: boolean) => void;
@@ -36,6 +43,7 @@ export const useMapStore = create<MapState>((set) => ({
     resources: true,
     dangerZones: true,
   },
+  globeLayers: defaultGlobeLayers,
   selectedRoute: null,
   routes: [],
   isLocating: false,
@@ -47,6 +55,11 @@ export const useMapStore = create<MapState>((set) => ({
     set((state) => ({
       activeLayers: { ...state.activeLayers, [layer]: !state.activeLayers[layer] },
     })),
+  toggleGlobeLayer: (layer) =>
+    set((state) => ({
+      globeLayers: { ...state.globeLayers, [layer]: !state.globeLayers[layer] },
+    })),
+  setGlobeLayers: (globeLayers) => set({ globeLayers }),
   setSelectedRoute: (route) => set({ selectedRoute: route }),
   setRoutes: (routes) => set({ routes }),
   setIsLocating: (locating) => set({ isLocating: locating }),
