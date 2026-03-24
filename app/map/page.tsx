@@ -78,7 +78,7 @@ export default function MapPage() {
   return (
     <div className="h-screen flex flex-col bg-navy overflow-hidden">
       <TopBar />
-      <div className="flex-1 relative mt-14 mb-14">
+      <div className="flex-1 relative mt-14 mb-14 min-h-0 h-full">
         <Suspense
           fallback={
             <div className="flex-1 bg-slate-200 animate-pulse flex items-center justify-center">

@@ -1,9 +1,10 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-// Fall back to placeholder values at build time — actual calls happen only client-side
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://localhost:54321";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "placeholder-key";
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  realtime: { params: { eventsPerSecond: 10 } },
-});
+export const isSupabaseConfigured = !!(url && key);
+
+export const supabase: SupabaseClient = isSupabaseConfigured
+  ? createClient(url!, key!, { realtime: { params: { eventsPerSecond: 10 } } })
+  : (null as unknown as SupabaseClient);

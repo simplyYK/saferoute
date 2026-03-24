@@ -5,13 +5,13 @@ import {
   MapContainer,
   TileLayer,
   ZoomControl,
+  Marker,
   useMap,
   useMapEvents,
   CircleMarker,
   Popup,
   Polyline,
 } from "react-leaflet";
-import MarkerClusterGroup from "react-leaflet-cluster";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -62,7 +62,7 @@ function MapEvents() {
 
 function UserLocationMarker() {
   const map = useMap();
-  const { latitude, longitude, loading } = useGeolocation();
+  const { latitude, longitude } = useGeolocation();
   const { setUserLocation } = useMapStore() as unknown as { setUserLocation: (l: { lat: number; lng: number }) => void };
 
   useEffect(() => {
@@ -102,7 +102,7 @@ function ConflictMarkers({ events }: { events: ConflictEvent[] }) {
         const color = severityColors[e.severity] || "#6B7280";
         const icon = createDivIcon("⚠️", color, 28);
         return (
-          <MarkerFromLib
+          <Marker
             key={e.id}
             position={[e.latitude, e.longitude]}
             icon={icon}
@@ -118,7 +118,7 @@ function ConflictMarkers({ events }: { events: ConflictEvent[] }) {
                 <p className="text-xs text-slate-400">Source: {e.source}</p>
               </div>
             </Popup>
-          </MarkerFromLib>
+          </Marker>
         );
       })}
     </>
@@ -136,7 +136,7 @@ function ReportMarkers({ reports }: { reports: Report[] }) {
         const timeStr = diffMin < 60 ? `${diffMin}m ago` : `${Math.round(diffMin / 60)}h ago`;
 
         return (
-          <MarkerFromLib key={r.id} position={[r.latitude, r.longitude]} icon={icon}>
+          <Marker key={r.id} position={[r.latitude, r.longitude]} icon={icon}>
             <Popup maxWidth={280}>
               <div className="text-sm space-y-1">
                 <p className="font-bold">{r.title}</p>
@@ -147,7 +147,7 @@ function ReportMarkers({ reports }: { reports: Report[] }) {
                 </p>
               </div>
             </Popup>
-          </MarkerFromLib>
+          </Marker>
         );
       })}
     </>
@@ -182,19 +182,13 @@ function RouteLayer() {
   );
 }
 
-// Dynamic import of Leaflet Marker to avoid SSR issues
-import dynamic from "next/dynamic";
-const MarkerFromLib = dynamic(
-  () => import("react-leaflet").then((mod) => mod.Marker),
-  { ssr: false }
-);
 
 interface CrisisMapProps {
   onMapClick?: (lat: number, lng: number) => void;
   country?: string;
 }
 
-export default function CrisisMap({ onMapClick, country = "Ukraine" }: CrisisMapProps) {
+export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
   const { center, zoom, activeLayers, selectedRoute, routes } = useMapStore();
   const { reports } = useReports();
   const { events } = useConflictData(country);
@@ -209,7 +203,7 @@ export default function CrisisMap({ onMapClick, country = "Ukraine" }: CrisisMap
       center={defaultCenter}
       zoom={zoom || MAP_CONFIG.DEFAULT_ZOOM}
       zoomControl={false}
-      style={{ width: "100%", height: "100%" }}
+      style={{ width: "100%", height: "calc(100vh - 7rem)" }}
       minZoom={MAP_CONFIG.MIN_ZOOM}
       maxZoom={MAP_CONFIG.MAX_ZOOM}
     >
@@ -222,16 +216,8 @@ export default function CrisisMap({ onMapClick, country = "Ukraine" }: CrisisMap
       <MapEvents />
       <UserLocationMarker />
 
-      <MarkerClusterGroup
-        chunkedLoading
-        maxClusterRadius={MAP_CONFIG.CLUSTER_MAX_RADIUS}
-        spiderfyOnMaxZoom
-        showCoverageOnHover={false}
-        disableClusteringAtZoom={MAP_CONFIG.CLUSTER_DISABLE_AT_ZOOM}
-      >
-        {activeLayers.conflictEvents && <ConflictMarkers events={events} />}
-        {activeLayers.reports && <ReportMarkers reports={reports} />}
-      </MarkerClusterGroup>
+      {activeLayers.conflictEvents && <ConflictMarkers events={events} />}
+      {activeLayers.reports && <ReportMarkers reports={reports} />}
 
       {(selectedRoute || routes.length > 0) && <RouteLayer />}
     </MapContainer>

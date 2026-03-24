@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase/client";
 import type { Report } from "@/types/report";
 
 export function useReports(lat?: number, lng?: number) {
@@ -9,6 +9,7 @@ export function useReports(lat?: number, lng?: number) {
   const [error, setError] = useState<string | null>(null);
 
   const fetchReports = useCallback(async () => {
+    if (!isSupabaseConfigured) { setLoading(false); return; }
     try {
       setLoading(true);
       const { data, error: err } = await supabase
@@ -31,6 +32,7 @@ export function useReports(lat?: number, lng?: number) {
 
   useEffect(() => {
     fetchReports();
+    if (!isSupabaseConfigured) return;
 
     // Subscribe to realtime changes
     const channel = supabase

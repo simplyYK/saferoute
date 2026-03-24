@@ -1,7 +1,8 @@
-import { supabase } from "./client";
+import { supabase, isSupabaseConfigured } from "./client";
 import type { Report, CreateReportInput } from "@/types/report";
 
 export async function createReport(input: CreateReportInput): Promise<Report> {
+  if (!isSupabaseConfigured) throw new Error("Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local");
   const { data, error } = await supabase
     .from("reports")
     .insert(input)
@@ -12,6 +13,7 @@ export async function createReport(input: CreateReportInput): Promise<Report> {
 }
 
 export async function getActiveReports(lat: number, lng: number, radiusKm = 50): Promise<Report[]> {
+  if (!isSupabaseConfigured) return [];
   const { data, error } = await supabase.rpc("nearby_reports", {
     user_lat: lat,
     user_lng: lng,
@@ -36,6 +38,7 @@ export async function confirmReport(
   deviceId: string,
   isConfirm: boolean
 ): Promise<void> {
+  if (!isSupabaseConfigured) throw new Error("Supabase not configured");
   const { error } = await supabase.rpc("confirm_report", {
     target_report_id: reportId,
     user_device_id: deviceId,
