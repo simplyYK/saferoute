@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import TopBar from "@/components/navigation/TopBar";
 import BottomNav from "@/components/navigation/BottomNav";
 import VisualModeSelector from "@/components/globe/VisualModeSelector";
@@ -21,6 +21,7 @@ import type {
 } from "@/components/globe/IntelligenceGlobe";
 import type { Flight } from "@/types/intelligence";
 import type { SeismicEvent } from "@/types/intelligence";
+import { FileText, Loader2, X } from "lucide-react";
 
 const IntelligenceGlobe = dynamic(
   () => import("@/components/globe/IntelligenceGlobe"),
@@ -43,6 +44,9 @@ export default function GlobePage() {
   const mode = useAppStore((s) => s.globeVisualMode);
   const [hoverFlight, setHoverFlight] = useState<Flight | null>(null);
   const [quakeDetail, setQuakeDetail] = useState<SeismicEvent | null>(null);
+  const [sitrepOpen, setSitrepOpen] = useState(false);
+  const [sitrepText, setSitrepText] = useState("");
+  const [sitrepLoading, setSitrepLoading] = useState(false);
 
   const flightsEnabled = layers.flights || layers.military;
   const { commercial, military, loading: flightsLoading } = useFlights(flightsEnabled);
@@ -127,6 +131,55 @@ export default function GlobePage() {
     ]
   );
 
+  const generateSitrep = useCallback(async () => {
+    setSitrepOpen(true);
+    setSitrepText("");
+    setSitrepLoading(true);
+    const prompt = `Generate a concise military-style situation report (SITREP) based on the current data: ${conflictFeatures.length} conflict events, ${reports.length} active community reports, ${earthquakes.length} seismic events in the last 24h, ${commercial.length} commercial flights tracked, ${military.length} military aircraft tracked. Format the response as: THREAT LEVEL · SITUATION SUMMARY · KEY OBSERVATIONS · RECOMMENDED ACTIONS. Keep it under 200 words.`;
+    try {
+      const res = await fetch("/api/groq", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          messages: [{ role: "user", content: prompt }],
+          context: {
+            activeReports: reports.length,
+            nearbyFlights: commercial.length + military.length,
+            recentSeismic: earthquakes.length,
+          },
+        }),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let full = "";
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          for (const line of chunk.split("\n")) {
+            if (!line.startsWith("data: ")) continue;
+            const data = line.slice(6);
+            if (data === "[DONE]") continue;
+            try {
+              const parsed = JSON.parse(data) as { content?: string };
+              if (parsed.content) {
+                full += parsed.content;
+                setSitrepText(full);
+              }
+            } catch { /* skip */ }
+          }
+        }
+      }
+    } catch (err) {
+      setSitrepText("Failed to generate SITREP. Check AI configuration.");
+      console.error("[SITREP]", err);
+    } finally {
+      setSitrepLoading(false);
+    }
+  }, [conflictFeatures.length, reports.length, earthquakes.length, commercial.length, military.length]);
+
   const filterStyle =
     mode === "flir"
       ? "sepia(100%) hue-rotate(300deg) saturate(500%) contrast(1.2)"
@@ -179,6 +232,17 @@ export default function GlobePage() {
           />
         </div>
         <VisualModeSelector />
+
+        {/* SITREP button */}
+        <button
+          type="button"
+          onClick={generateSitrep}
+          className="absolute top-3 right-[290px] z-[600] flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-teal/40 bg-black/50 text-teal hover:bg-teal/20 transition-all backdrop-blur"
+        >
+          <FileText className="w-3.5 h-3.5" />
+          SITREP
+        </button>
+
         <LayerPanel layers={layers} onToggle={toggle} counts={counts} />
         {layers.cctv && <CCTVPanel />}
 
@@ -251,6 +315,61 @@ export default function GlobePage() {
               >
                 Close
               </button>
+            </div>
+          </div>
+        )}
+        {/* SITREP modal */}
+        {sitrepOpen && (
+          <div
+            className="absolute inset-0 z-[590] flex items-center justify-center p-4 bg-black/75"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Situation Report"
+            onClick={() => setSitrepOpen(false)}
+          >
+            <div
+              className="max-w-lg w-full rounded-xl border border-teal/30 bg-[#080d1a] shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* SITREP header */}
+              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-[#0d1526]">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-teal" />
+                  <span className="text-xs font-bold text-teal tracking-widest uppercase">Situation Report</span>
+                  <span className="text-xs text-slate-500">{new Date().toUTCString()}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSitrepOpen(false)}
+                  className="text-slate-400 hover:text-white transition-colors"
+                  aria-label="Close"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="p-4 font-mono text-sm text-slate-200 min-h-[160px] max-h-[60vh] overflow-y-auto leading-relaxed">
+                {sitrepLoading && !sitrepText && (
+                  <div className="flex items-center gap-2 text-teal">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Generating intelligence report…</span>
+                  </div>
+                )}
+                {sitrepText && (
+                  <pre className="whitespace-pre-wrap font-mono text-xs text-slate-200">{sitrepText}{sitrepLoading ? "▋" : ""}</pre>
+                )}
+              </div>
+
+              <div className="px-4 py-3 border-t border-white/10 flex justify-between items-center text-[10px] text-slate-500">
+                <span>SafeRoute Intelligence · AUTO-GENERATED · NOT FOR OPERATIONAL USE</span>
+                <button
+                  type="button"
+                  onClick={() => setSitrepOpen(false)}
+                  className="px-3 py-1 rounded border border-white/15 text-slate-300 hover:bg-white/10 transition-colors text-xs"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
         )}

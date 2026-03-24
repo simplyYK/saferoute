@@ -1,84 +1,77 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
+import Parser from "rss-parser";
 
-interface GDELTArticle {
-  url: string;
+interface Article {
+  id: string;
   title: string;
-  seendate: string;
-  socialimage: string;
-  domain: string;
-  language: string;
-  sourcecountry: string;
+  description: string;
+  url: string;
+  imageUrl: string | null;
+  source: string;
+  publishedAt: string;
+  severity: "critical" | "warning" | "advisory" | "info";
 }
 
-let cache: { data: unknown[]; query: string; timestamp: number } | null = null;
-const CACHE_TTL_MS = 15 * 60 * 1000;
+const parser = new Parser({
+  timeout: 8000,
+  headers: { "User-Agent": "SafeRoute/1.0 (crisis navigation app)" },
+});
 
-function classifySeverity(title: string): "critical" | "warning" | "advisory" {
+let cache: { data: Article[]; timestamp: number } | null = null;
+const CACHE_TTL_MS = 5 * 60 * 1000;
+
+const RSS_SOURCES = [
+  { url: "https://feeds.reuters.com/reuters/worldNews", name: "Reuters" },
+  { url: "http://feeds.bbci.co.uk/news/world/rss.xml", name: "BBC" },
+  { url: "https://www.aljazeera.com/xml/rss/all.xml", name: "Al Jazeera" },
+];
+
+function classifySeverity(title: string): Article["severity"] {
   const t = title.toLowerCase();
-  if (/killed|airstrike|massacre|bombing|explosion|casualties|dead/.test(t)) return "critical";
-  if (/fighting|shelling|offensive|attack|military|strike/.test(t)) return "warning";
-  return "advisory";
+  if (/killed|killing|explosion|attack|strike|bombing|shelling|massacre|invasion|airstrike|casualties|dead/.test(t))
+    return "critical";
+  if (/military|conflict|troops|weapons|missile|ceasefire|offensive|wounded|fighting|war/.test(t))
+    return "warning";
+  if (/crisis|emergency|displacement|evacuation|sanctions|threat|tension/.test(t))
+    return "advisory";
+  return "info";
 }
 
-function parseDate(raw: string): string {
+async function fetchFeed(source: { url: string; name: string }): Promise<Article[]> {
   try {
-    const year = raw.substring(0, 4);
-    const month = raw.substring(4, 6);
-    const day = raw.substring(6, 8);
-    const hour = raw.substring(9, 11) || "00";
-    const min = raw.substring(11, 13) || "00";
-    return new Date(`${year}-${month}-${day}T${hour}:${min}:00Z`).toISOString();
-  } catch {
-    return new Date().toISOString();
-  }
-}
-
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url);
-  const query = searchParams.get("query") || "Ukraine conflict";
-  const timespan = searchParams.get("timespan") || "24h";
-  const limit = parseInt(searchParams.get("limit") || "50");
-
-  if (cache && cache.query === query && Date.now() - cache.timestamp < CACHE_TTL_MS) {
-    return NextResponse.json({ articles: cache.data, cached: true, count: cache.data.length });
-  }
-
-  try {
-    const url = new URL("https://api.gdeltproject.org/api/v2/doc/doc");
-    url.searchParams.set("query", query);
-    url.searchParams.set("mode", "artlist");
-    url.searchParams.set("maxrecords", limit.toString());
-    url.searchParams.set("timespan", timespan);
-    url.searchParams.set("sort", "datedesc");
-    url.searchParams.set("format", "json");
-
-    const res = await fetch(url.toString());
-    if (!res.ok) throw new Error(`GDELT ${res.status}`);
-    const text = await res.text();
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      return NextResponse.json({ articles: [], count: 0 });
-    }
-
-    const articles = ((data.articles || []) as GDELTArticle[]).map((a, i) => ({
-      id: `gdelt-${i}-${Date.now()}`,
-      title: a.title || "Untitled",
-      url: a.url || "",
-      imageUrl: a.socialimage || null,
-      source: a.domain || "Unknown",
-      publishedAt: parseDate(a.seendate || ""),
-      language: a.language || "English",
-      country: a.sourcecountry || "",
-      severity: classifySeverity(a.title || ""),
+    const feed = await parser.parseURL(source.url);
+    return (feed.items ?? []).slice(0, 20).map((item, i) => ({
+      id: `${source.name.toLowerCase()}-${i}-${Date.now()}`,
+      title: item.title ?? "Untitled",
+      description: item.contentSnippet ?? item.summary ?? "",
+      url: item.link ?? "",
+      imageUrl: null,
+      source: source.name,
+      publishedAt: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
+      severity: classifySeverity(item.title ?? ""),
     }));
-
-    cache = { data: articles, query, timestamp: Date.now() };
-    return NextResponse.json({ articles, cached: false, count: articles.length });
   } catch (err) {
-    console.error("[GDELT]", err);
-    if (cache) return NextResponse.json({ articles: cache.data, cached: true, stale: true, count: cache.data.length });
-    return NextResponse.json({ articles: [], error: "Failed to fetch news", count: 0 }, { status: 500 });
+    console.error(`[RSS] ${source.name} failed:`, err);
+    return [];
   }
+}
+
+export async function GET() {
+  if (cache && Date.now() - cache.timestamp < CACHE_TTL_MS) {
+    return NextResponse.json({ articles: cache.data, cached: true, lastUpdated: new Date(cache.timestamp).toISOString(), count: cache.data.length });
+  }
+
+  const results = await Promise.allSettled(RSS_SOURCES.map(fetchFeed));
+
+  const allArticles: Article[] = [];
+  for (const r of results) {
+    if (r.status === "fulfilled") allArticles.push(...r.value);
+  }
+
+  // Sort by date descending, take top 30
+  allArticles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  const articles = allArticles.slice(0, 30);
+
+  cache = { data: articles, timestamp: Date.now() };
+  return NextResponse.json({ articles, cached: false, lastUpdated: new Date().toISOString(), count: articles.length });
 }

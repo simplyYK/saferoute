@@ -1,31 +1,34 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Bot, Trash2, Heart, Shield, Route, Phone, Droplets, Scale } from "lucide-react";
+import { Send, Loader2, Bot, Trash2, AlertTriangle, Plane, Activity, MapPin, Car, Phone, Shield } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useAppStore } from "@/store/appStore";
+import { useMapStore } from "@/store/mapStore";
 import type { ChatMessage } from "@/types/map";
 
 const QUICK_ACTIONS = [
-  { icon: Heart, label: "First Aid", prompt: "How do I treat a bleeding wound with limited supplies?" },
-  { icon: Shield, label: "Shelter", prompt: "What should I do during active shelling? How to shelter in place safely?" },
-  { icon: Route, label: "Evacuate", prompt: "What are key tips for safe civilian evacuation from a conflict zone?" },
-  { icon: Phone, label: "Emergency #s", prompt: "What are emergency contact numbers and organizations for crisis situations?" },
-  { icon: Droplets, label: "Water", prompt: "How can I purify water without commercial filters in an emergency?" },
-  { icon: Scale, label: "Legal Rights", prompt: "What are my legal rights as a displaced person or refugee under international law?" },
+  { icon: AlertTriangle, label: "Active threats", prompt: "What are the active threats near my location right now?" },
+  { icon: Plane, label: "Aircraft overhead", prompt: "What aircraft are currently overhead? Any military activity?" },
+  { icon: Activity, label: "Seismic spikes", prompt: "Are there any recent seismic spikes? Could they be artillery?" },
+  { icon: MapPin, label: "Nearest hospital", prompt: "Where is the nearest hospital or shelter in my area?" },
+  { icon: Car, label: "Evacuation route", prompt: "What is the safest evacuation route from my current location?" },
+  { icon: Phone, label: "Emergency contacts", prompt: "What are the emergency contacts and organizations for this region?" },
 ];
 
 const WELCOME: ChatMessage = {
   id: "welcome",
   role: "assistant",
-  content: "Hello! I'm SafeRoute AI, your emergency crisis assistant. I can help with **first aid**, **shelter advice**, **evacuation tips**, **legal rights**, and more.\n\nHow can I help you stay safe?",
+  content: "I'm SafeRoute Intelligence Analyst. I have access to live conflict events, flight tracking, seismic data, and satellite positions.\n\nHow can I help you assess the situation?",
   timestamp: new Date(),
 };
 
 export default function ChatInterface({ className = "" }: { className?: string }) {
   const { language } = useAppStore();
+  const globeLayers = useMapStore((s) => s.globeLayers);
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [liveCounts, setLiveCounts] = useState({ reports: 0, flights: 0, seismic: 0 });
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -34,6 +37,27 @@ export default function ChatInterface({ className = "" }: { className?: string }
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Pull rough live counts from cached API data
+  useEffect(() => {
+    let cancelled = false;
+    const fetchCounts = async () => {
+      try {
+        const [seismicRes] = await Promise.allSettled([
+          fetch("/api/seismic"),
+        ]);
+        if (cancelled) return;
+        let seismic = 0;
+        if (seismicRes.status === "fulfilled" && seismicRes.value.ok) {
+          const d = await seismicRes.value.json() as { events?: unknown[] };
+          seismic = d.events?.length ?? 0;
+        }
+        setLiveCounts((prev) => ({ ...prev, seismic }));
+      } catch { /* ignore */ }
+    };
+    void fetchCounts();
+    return () => { cancelled = true; };
+  }, []);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -52,17 +76,23 @@ export default function ChatInterface({ className = "" }: { className?: string }
         content: m.content,
       }));
 
+      const context = {
+        activeReports: liveCounts.reports || undefined,
+        nearbyFlights: liveCounts.flights || undefined,
+        recentSeismic: liveCounts.seismic || undefined,
+      };
+
       try {
         abortRef.current = new AbortController();
         const res = await fetch("/api/groq", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: history, language }),
+          body: JSON.stringify({ messages: history, language, context }),
           signal: abortRef.current.signal,
         });
 
         if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
+          const err = await res.json().catch(() => ({})) as { error?: string };
           throw new Error(err.error || `HTTP ${res.status}`);
         }
 
@@ -80,7 +110,7 @@ export default function ChatInterface({ className = "" }: { className?: string }
               const data = line.slice(6);
               if (data === "[DONE]") continue;
               try {
-                const parsed = JSON.parse(data);
+                const parsed = JSON.parse(data) as { content?: string };
                 if (parsed.content) {
                   full += parsed.content;
                   setMessages((prev) =>
@@ -99,7 +129,7 @@ export default function ChatInterface({ className = "" }: { className?: string }
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
-              ? { ...m, content: `⚠️ Error: ${errMsg}\n\nPlease try again.`, isStreaming: false }
+              ? { ...m, content: `Error: ${errMsg}\n\nPlease try again.`, isStreaming: false }
               : m
           )
         );
@@ -107,10 +137,12 @@ export default function ChatInterface({ className = "" }: { className?: string }
         setLoading(false);
       }
     },
-    [loading, messages, language]
+    [loading, messages, language, liveCounts]
   );
 
   const clear = () => setMessages([WELCOME]);
+
+  const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
 
   return (
     <div className={`flex flex-col h-full bg-white ${className}`}>
@@ -119,11 +151,25 @@ export default function ChatInterface({ className = "" }: { className?: string }
         <div className="flex items-center gap-2">
           <Bot className="w-5 h-5 text-teal" />
           <h2 className="font-semibold">Crisis Assistant</h2>
+          {isDesktop && (
+            <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal/20 text-teal border border-teal/30 uppercase tracking-wide">
+              Intelligence Mode
+            </span>
+          )}
         </div>
         <button onClick={clear} className="p-1 hover:text-slate-300 transition-colors" aria-label="Clear chat">
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
+
+      {/* Live data summary */}
+      {(liveCounts.reports > 0 || liveCounts.flights > 0 || liveCounts.seismic > 0) && (
+        <div className="px-4 py-2 bg-slate-900 text-slate-400 text-[11px] flex gap-3 flex-wrap border-b border-slate-800">
+          {liveCounts.reports > 0 && <span>📍 {liveCounts.reports} active reports</span>}
+          {liveCounts.flights > 0 && <span>✈️ {liveCounts.flights} flights tracked</span>}
+          {liveCounts.seismic > 0 && <span>🌍 {liveCounts.seismic} seismic events (24h)</span>}
+        </div>
+      )}
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
@@ -174,7 +220,7 @@ export default function ChatInterface({ className = "" }: { className?: string }
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage(input)}
-          placeholder="Type your question..."
+          placeholder="Ask the analyst..."
           disabled={loading}
           className="flex-1 border-2 border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-teal min-h-[48px]"
         />
