@@ -12,6 +12,8 @@ interface Prediction {
   place_id: string;
   description: string;
   structured_formatting?: { main_text: string; secondary_text: string };
+  lat?: number;
+  lng?: number;
 }
 
 interface Props {
@@ -70,33 +72,20 @@ export default function LocationSearch({
     debounceRef.current = setTimeout(() => void search(val), 300);
   };
 
-  const selectPlace = async (p: Prediction) => {
+  const selectPlace = (p: Prediction) => {
     setQuery(p.structured_formatting?.main_text ?? p.description);
     setOpen(false);
     setSuggestions([]);
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/places?place_id=${encodeURIComponent(p.place_id)}`);
-      const data = await res.json() as {
-        result?: { geometry?: { location?: { lat: number; lng: number } }; formatted_address?: string; name?: string };
-      };
-      const loc = data.result?.geometry?.location;
-      if (loc) {
-        onSelect({
-          lat: loc.lat,
-          lng: loc.lng,
-          name: data.result?.name ?? p.description,
-        });
-      }
-    } catch { /* ignore */ }
-    finally { setLoading(false); }
+    if (p.lat !== undefined && p.lng !== undefined) {
+      onSelect({ lat: p.lat, lng: p.lng, name: p.structured_formatting?.main_text ?? p.description });
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (!open) return;
     if (e.key === "ArrowDown") { e.preventDefault(); setActiveIdx((i) => Math.min(i + 1, suggestions.length - 1)); }
     if (e.key === "ArrowUp") { e.preventDefault(); setActiveIdx((i) => Math.max(i - 1, -1)); }
-    if (e.key === "Enter" && activeIdx >= 0) { e.preventDefault(); void selectPlace(suggestions[activeIdx]!); }
+    if (e.key === "Enter" && activeIdx >= 0) { e.preventDefault(); selectPlace(suggestions[activeIdx]!); }
     if (e.key === "Escape") { setOpen(false); }
   };
 
@@ -143,7 +132,7 @@ export default function LocationSearch({
             <li key={p.place_id}>
               <button
                 type="button"
-                onMouseDown={(e) => { e.preventDefault(); void selectPlace(p); }}
+                onMouseDown={(e) => { e.preventDefault(); selectPlace(p); }}
                 className={`w-full flex items-start gap-2.5 px-3 py-2.5 text-left hover:bg-slate-50 transition-colors ${
                   i === activeIdx ? "bg-teal/10" : ""
                 }`}
