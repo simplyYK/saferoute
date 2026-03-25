@@ -7,6 +7,19 @@ export const metadata: Metadata = {
   description:
     "Real-time crisis intelligence for civilians in conflict zones. Safe routes, threat analysis, emergency resources, and AI-powered survival guidance.",
   manifest: "/manifest.json",
+  openGraph: {
+    title: "Sentinel — Crisis Intelligence Platform",
+    description:
+      "Live conflict mapping, safe route navigation, and AI-powered survival guidance.",
+    images: [{ url: "/images/og-image.jpg", width: 1200, height: 630 }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sentinel — Crisis Intelligence Platform",
+    description:
+      "Live conflict mapping, safe route navigation, and AI-powered survival guidance.",
+    images: ["/images/og-image.jpg"],
+  },
 };
 
 export const viewport: Viewport = {

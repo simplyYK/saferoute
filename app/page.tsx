@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { MapPin, ChevronDown, AlertTriangle, Loader2 } from "lucide-react";
+import { MapPin, ChevronDown, AlertTriangle, Loader2, Shield, Route, Brain, Building2 } from "lucide-react";
 import { useAppStore } from "@/store/appStore";
 import { useMapStore } from "@/store/mapStore";
 import { REGIONS } from "@/lib/constants/regions";
@@ -17,6 +17,44 @@ const DEMO_COORDS: Record<string, { lat: number; lng: number }> = {
   yemen: { lat: 15.3694, lng: 44.191 },
   syria: { lat: 34.8021, lng: 38.9968 },
 };
+
+const FEATURES = [
+  {
+    image: "/images/feature-threat-detection.jpg",
+    icon: Shield,
+    title: "Real-Time Threat Detection",
+    desc: "Live conflict data from ACLED, NASA FIRMS, and USGS fused into a unified threat picture updated every minute.",
+  },
+  {
+    image: "/images/feature-safe-routes.jpg",
+    icon: Route,
+    title: "Safe Route Navigation",
+    desc: "AI-scored routes that avoid active conflict zones, danger areas, and community-reported threats.",
+  },
+  {
+    image: "/images/feature-ai-intelligence.jpg",
+    icon: Brain,
+    title: "AI Survival Intelligence",
+    desc: "An AI agent that analyzes 10+ data sources to answer your questions and guide you to safety.",
+  },
+  {
+    image: "/images/feature-resources.jpg",
+    icon: Building2,
+    title: "Emergency Resources",
+    desc: "Find hospitals, shelters, pharmacies, water sources, and police stations near you in seconds.",
+  },
+];
+
+const DATA_SOURCES = [
+  "ACLED",
+  "NASA FIRMS",
+  "USGS",
+  "OpenSky",
+  "GDELT",
+  "OSM",
+  "Google Maps",
+  "Supabase",
+];
 
 export default function EntryScreen() {
   const router = useRouter();
@@ -78,183 +116,274 @@ export default function EntryScreen() {
   if (!mounted) return null;
 
   return (
-    <main className="min-h-screen bg-[#060c1a] text-white flex flex-col items-center justify-center relative overflow-hidden">
-      {/* Tactical grid background */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-40"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(14,165,233,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(14,165,233,0.05) 1px, transparent 1px)",
-          backgroundSize: "48px 48px",
-        }}
-      />
-      {/* Corner brackets */}
-      <div className="absolute top-8 left-8 w-12 h-12 border-t-2 border-l-2 border-teal/20 pointer-events-none" />
-      <div className="absolute top-8 right-8 w-12 h-12 border-t-2 border-r-2 border-teal/20 pointer-events-none" />
-      <div className="absolute bottom-8 left-8 w-12 h-12 border-b-2 border-l-2 border-teal/20 pointer-events-none" />
-      <div className="absolute bottom-8 right-8 w-12 h-12 border-b-2 border-r-2 border-teal/20 pointer-events-none" />
-      {/* Glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-teal/4 rounded-full blur-3xl pointer-events-none" />
-
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 flex flex-col items-center px-6 w-full max-w-2xl"
-      >
-        {/* Logo */}
-        <motion.div
-          initial={{ scale: 0.7, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-8 flex flex-col items-center gap-4"
+    <main className="bg-[#060c1a] text-white">
+      {/* ─── HERO SECTION ─── */}
+      <section className="min-h-screen relative flex flex-col items-center justify-center overflow-hidden">
+        {/* Video background */}
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          poster="/images/hero-satellite.jpg"
         >
-          <div className="relative">
-            <div className="absolute inset-0 bg-teal/15 rounded-full blur-2xl scale-150 animate-pulse" />
-            <SentinelIcon size={64} animated />
-          </div>
-          <div className="text-center">
-            <SentinelWordmark size="lg" />
-            <p className="text-[11px] text-slate-500 tracking-[0.3em] uppercase mt-1">Navigate. Survive. Report.</p>
-          </div>
-        </motion.div>
+          <source src="/images/hero-bg.mp4" type="video/mp4" />
+        </video>
 
-        {/* Tagline */}
+        {/* Overlay gradients */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060c1a]/90 via-[#060c1a]/50 to-[#060c1a]" />
+        <div className="absolute inset-0 bg-gradient-to-r from-[#060c1a]/40 via-transparent to-[#060c1a]/40" />
+
+        {/* Hero content */}
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.25, duration: 0.5 }}
-          className="text-center mb-8"
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="relative z-10 flex flex-col items-center px-6 w-full max-w-4xl"
         >
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-3">
-            When danger surrounds you,{" "}
-            <span
-              className="bg-clip-text text-transparent"
-              style={{ backgroundImage: "linear-gradient(135deg, #0EA5E9, #38BDF8, #7DD3FC)" }}
-            >
-              Sentinel shows you the way out.
-            </span>
-          </h1>
-          <p className="text-slate-400 text-sm sm:text-base leading-relaxed max-w-lg mx-auto">
-            Live conflict mapping, safe route navigation, nearby resources,
-            and AI-powered survival guidance — all in one app.
-          </p>
-        </motion.div>
-
-        {/* CTAs */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.38, duration: 0.5 }}
-          className="w-full max-w-md mx-auto space-y-3 mb-5"
-        >
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={handleUseLocation}
-            disabled={locating}
-            className="w-full relative text-white font-bold py-4 px-6 rounded-2xl text-base flex items-center justify-center gap-3 disabled:opacity-70 min-h-[58px] overflow-hidden"
-            style={{
-              background: "linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)",
-              boxShadow: "0 0 30px rgba(14,165,233,0.25), inset 0 1px 0 rgba(255,255,255,0.15)",
-            }}
+          {/* Logo */}
+          <motion.div
+            initial={{ scale: 0.7, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ delay: 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="mb-8 flex flex-col items-center gap-4"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/8 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" />
-            {locating ? (
-              <><Loader2 className="w-4 h-4 animate-spin" />Acquiring location…</>
-            ) : (
-              <><MapPin className="w-4 h-4" />Use My Location</>
-            )}
-          </motion.button>
+            <div className="relative">
+              <div className="absolute inset-0 bg-teal/15 rounded-full blur-2xl scale-150 animate-pulse" />
+              <SentinelIcon size={64} animated />
+            </div>
+            <div className="text-center">
+              <SentinelWordmark size="lg" />
+              <p className="text-[11px] text-slate-500 tracking-[0.3em] uppercase mt-1">Navigate. Survive. Report.</p>
+            </div>
+          </motion.div>
 
-          <motion.button
-            whileHover={{ scale: 1.01, borderColor: "rgba(14,165,233,0.4)" }}
-            whileTap={{ scale: 0.99 }}
-            onClick={() => setShowRegions(!showRegions)}
-            className="w-full border border-white/12 text-slate-300 hover:text-white font-semibold py-3.5 px-6 rounded-2xl text-sm flex items-center justify-center gap-2.5 transition-all min-h-[52px] backdrop-blur-sm"
-            style={{ background: "rgba(255,255,255,0.04)" }}
+          {/* Tagline */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.5 }}
+            className="text-center mb-8"
           >
-            Choose Conflict Region
-            <motion.span animate={{ rotate: showRegions ? 180 : 0 }} transition={{ duration: 0.2 }}>
-              <ChevronDown className="w-4 h-4" />
-            </motion.span>
-          </motion.button>
-        </motion.div>
-
-        {/* Error */}
-        <AnimatePresence>
-          {locError && (
-            <motion.div
-              initial={{ opacity: 0, y: -6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="flex items-center gap-2 text-amber-400 text-xs mb-4 bg-amber-400/8 border border-amber-400/15 rounded-xl px-4 py-2.5 w-full max-w-md mx-auto"
-            >
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-              {locError}
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Region grid */}
-        <AnimatePresence>
-          {showRegions && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.28 }}
-              className="w-full max-w-lg mx-auto overflow-hidden mb-5"
-            >
-              <div
-                className="rounded-2xl p-4"
-                style={{ background: "rgba(14,165,233,0.04)", border: "1px solid rgba(14,165,233,0.12)" }}
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight mb-3">
+              When danger surrounds you,{" "}
+              <span
+                className="bg-clip-text text-transparent"
+                style={{ backgroundImage: "linear-gradient(135deg, #0EA5E9, #38BDF8, #7DD3FC)" }}
               >
-                <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-semibold mb-3">
-                  Active conflict zones
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                  {REGIONS.map((region, i) => (
-                    <motion.button
-                      key={region.id}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.035 }}
-                      whileHover={{ scale: 1.03, backgroundColor: "rgba(14,165,233,0.1)" }}
-                      whileTap={{ scale: 0.97 }}
-                      onClick={() => handleRegionSelect(region)}
-                      className="text-left px-3 py-2.5 rounded-xl border border-white/6 hover:border-teal/30 transition-all text-sm font-medium text-slate-300 hover:text-white"
-                    >
-                      {region.name}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                Sentinel shows you the way out.
+              </span>
+            </h1>
+            <p className="text-slate-400 text-sm sm:text-base leading-relaxed max-w-lg mx-auto">
+              Live conflict mapping, safe route navigation, nearby resources,
+              and AI-powered survival guidance — all in one app.
+            </p>
+          </motion.div>
 
-        {/* Trust badges */}
+          {/* CTAs */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.38, duration: 0.5 }}
+            className="w-full max-w-md mx-auto space-y-3 mb-5"
+          >
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={handleUseLocation}
+              disabled={locating}
+              className="w-full relative text-white font-bold py-4 px-6 rounded-2xl text-base flex items-center justify-center gap-3 disabled:opacity-70 min-h-[58px] overflow-hidden"
+              style={{
+                background: "linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)",
+                boxShadow: "0 0 30px rgba(14,165,233,0.25), inset 0 1px 0 rgba(255,255,255,0.15)",
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/8 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" />
+              {locating ? (
+                <><Loader2 className="w-4 h-4 animate-spin" />Acquiring location…</>
+              ) : (
+                <><MapPin className="w-4 h-4" />Use My Location</>
+              )}
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.01, borderColor: "rgba(14,165,233,0.4)" }}
+              whileTap={{ scale: 0.99 }}
+              onClick={() => setShowRegions(!showRegions)}
+              className="w-full border border-white/12 text-slate-300 hover:text-white font-semibold py-3.5 px-6 rounded-2xl text-sm flex items-center justify-center gap-2.5 transition-all min-h-[52px] backdrop-blur-sm"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+            >
+              Choose Conflict Region
+              <motion.span animate={{ rotate: showRegions ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                <ChevronDown className="w-4 h-4" />
+              </motion.span>
+            </motion.button>
+          </motion.div>
+
+          {/* Error */}
+          <AnimatePresence>
+            {locError && (
+              <motion.div
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="flex items-center gap-2 text-amber-400 text-xs mb-4 bg-amber-400/8 border border-amber-400/15 rounded-xl px-4 py-2.5 w-full max-w-md mx-auto"
+              >
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                {locError}
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Region grid */}
+          <AnimatePresence>
+            {showRegions && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.28 }}
+                className="w-full max-w-lg mx-auto overflow-hidden mb-5"
+              >
+                <div
+                  className="rounded-2xl p-4"
+                  style={{ background: "rgba(14,165,233,0.04)", border: "1px solid rgba(14,165,233,0.12)" }}
+                >
+                  <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-semibold mb-3">
+                    Active conflict zones
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                    {REGIONS.map((region, i) => (
+                      <motion.button
+                        key={region.id}
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.035 }}
+                        whileHover={{ scale: 1.03, backgroundColor: "rgba(14,165,233,0.1)" }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => handleRegionSelect(region)}
+                        className="text-left px-3 py-2.5 rounded-xl border border-white/6 hover:border-teal/30 transition-all text-sm font-medium text-slate-300 hover:text-white"
+                      >
+                        {region.name}
+                      </motion.button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Trust badges */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.55 }}
+            className="flex items-center gap-4 text-[10px] text-slate-600"
+          >
+            <span className="flex items-center gap-1">
+              <span className="w-1 h-1 bg-green-500 rounded-full" />
+              No sign-up
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-1 h-1 bg-green-500 rounded-full" />
+              Location private
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-1 h-1 bg-green-500 rounded-full" />
+              Works offline
+            </span>
+          </motion.div>
+        </motion.div>
+
+        {/* Scroll indicator */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.55 }}
-          className="flex items-center gap-4 text-[10px] text-slate-600"
+          transition={{ delay: 1.2 }}
+          className="absolute bottom-8 z-10 flex flex-col items-center gap-2"
         >
-          <span className="flex items-center gap-1">
-            <span className="w-1 h-1 bg-green-500 rounded-full" />
-            No sign-up
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-1 h-1 bg-green-500 rounded-full" />
-            Location private
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-1 h-1 bg-green-500 rounded-full" />
-            Works offline
-          </span>
+          <span className="text-[10px] text-slate-500 tracking-widest uppercase">Explore</span>
+          <motion.div
+            animate={{ y: [0, 6, 0] }}
+            transition={{ repeat: Infinity, duration: 1.8, ease: "easeInOut" }}
+          >
+            <ChevronDown className="w-4 h-4 text-slate-500" />
+          </motion.div>
         </motion.div>
-      </motion.div>
+      </section>
+
+      {/* ─── FEATURES SECTION ─── */}
+      <section className="relative px-6 py-24">
+        <div className="max-w-5xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-100px" }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-3xl sm:text-4xl font-bold mb-4">Built for survival in conflict zones</h2>
+            <p className="text-slate-400 text-sm sm:text-base max-w-xl mx-auto">
+              Every feature is designed for civilians navigating the most dangerous environments on Earth.
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {FEATURES.map((feature, i) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ delay: i * 0.1, duration: 0.5 }}
+                className="bg-white/[0.03] border border-white/[0.08] backdrop-blur-sm rounded-2xl p-6 flex flex-col items-center text-center"
+              >
+                <img
+                  src={feature.image}
+                  alt={feature.title}
+                  className="w-16 h-16 rounded-xl object-cover mb-4"
+                />
+                <feature.icon className="w-5 h-5 text-sky-400 mb-2" />
+                <h3 className="text-white font-semibold text-sm mb-2">{feature.title}</h3>
+                <p className="text-slate-400 text-xs leading-relaxed">{feature.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ─── DATA SOURCES BAR ─── */}
+      <section className="px-6 pb-16">
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="max-w-4xl mx-auto text-center"
+        >
+          <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-semibold mb-4">
+            Powered by 10+ intelligence sources
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            {DATA_SOURCES.map((source) => (
+              <span
+                key={source}
+                className="text-xs text-slate-400 border border-white/[0.08] rounded-full px-3 py-1"
+              >
+                {source}
+              </span>
+            ))}
+          </div>
+        </motion.div>
+      </section>
+
+      {/* ─── FOOTER NOTE ─── */}
+      <footer className="px-6 pb-12 text-center">
+        <p className="text-xs text-slate-600">
+          No sign-up required &middot; Location stays on your device &middot; Works in low-connectivity areas
+        </p>
+      </footer>
     </main>
   );
 }
