@@ -42,6 +42,7 @@ function RefreshButton() {
 
 function RegionPicker() {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const viewCountry = useMapStore((s) => s.viewCountry);
   const setViewCountry = useMapStore((s) => s.setViewCountry);
   const setCenter = useMapStore((s) => s.setCenter);
@@ -52,10 +53,18 @@ function RegionPicker() {
     (r) => r.country === viewCountry || r.name === viewCountry
   );
 
+  const filteredRegions = search.trim()
+    ? REGIONS.filter(
+        (r) =>
+          r.name.toLowerCase().includes(search.toLowerCase()) ||
+          r.country.toLowerCase().includes(search.toLowerCase())
+      )
+    : REGIONS;
+
   return (
     <div className="relative shrink-0">
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => { setOpen(!open); setSearch(""); }}
         className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium text-slate-300 hover:text-white bg-white/5 border border-white/8 hover:border-white/20 transition-all"
       >
         <MapPin className="w-3 h-3 text-teal" />
@@ -71,7 +80,7 @@ function RegionPicker() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.95 }}
               transition={{ duration: 0.15 }}
-              className="absolute right-0 top-full mt-1 z-[1051] w-56 max-h-72 overflow-y-auto rounded-xl border border-white/10 shadow-2xl"
+              className="absolute right-0 top-full mt-1 z-[1051] w-56 max-h-80 overflow-y-auto rounded-xl border border-white/10 shadow-2xl"
               style={{ background: "rgba(13,20,36,0.98)", backdropFilter: "blur(20px)" }}
             >
               <div className="p-1.5">
@@ -93,7 +102,7 @@ function RegionPicker() {
                     <div className="border-b border-white/6 my-1" />
                   </>
                 )}
-                {REGIONS.map((r) => {
+                {filteredRegions.map((r) => {
                   const active = r.country === viewCountry || r.name === viewCountry;
                   return (
                     <button
@@ -114,6 +123,20 @@ function RegionPicker() {
                     </button>
                   );
                 })}
+                {search.trim() && filteredRegions.length === 0 && (
+                  <p className="text-[10px] text-slate-500 text-center py-2">No regions match &quot;{search}&quot;</p>
+                )}
+                {/* Search input */}
+                <div className="border-t border-white/6 mt-1 pt-1">
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search country..."
+                    className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-xs text-white placeholder:text-slate-500 outline-none focus:border-teal/40 transition-colors"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
               </div>
             </motion.div>
           </>

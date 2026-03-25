@@ -4,6 +4,7 @@ import TopBar from "@/components/navigation/TopBar";
 import BottomNav from "@/components/navigation/BottomNav";
 import { ExternalLink, RefreshCw, Radio } from "lucide-react";
 import type { RssArticle, FeedSeverity } from "@/app/api/gdelt/route";
+import { Citation } from "@/components/shared/Citation";
 
 const SEVERITY_STYLES: Record<FeedSeverity, { badge: string; border: string }> = {
   critical: { badge: "bg-red-500/15 text-red-400 border-red-500/30", border: "border-l-red-500" },
@@ -172,6 +173,7 @@ export default function NewsPage() {
                     </span>
                     <span className="text-xs text-slate-400 font-medium">{a.source}</span>
                     <span className="text-xs text-slate-500">{timeAgo(a.pubDate)}</span>
+                    <Citation source="GDELT" />
                     <ExternalLink className="w-3 h-3 text-slate-500 ml-auto shrink-0" />
                   </div>
                 </a>

@@ -33,7 +33,7 @@ TOOL USAGE RULES:
 7. When showing the user a place, ALWAYS call fly_to_location so they can see it on the map
 
 DATA TRANSLATION — Make raw data actionable for a civilian:
-- Thermal hotspots → "Possible fire/explosion detected X km from you — avoid this area"
+- Thermal hotspots → "Thermal anomaly detected X km from you — may indicate fires, industrial activity, or conflict-related events. Avoid this area"
 - Military aircraft → "X military aircraft detected overhead — this may indicate active operations"
 - Seismic + conflict zone → "Seismic activity near conflict zone — may indicate heavy artillery"
 - AQI > 150 → "Air quality is unhealthy (AQI X) — cover nose and mouth if moving outdoors"

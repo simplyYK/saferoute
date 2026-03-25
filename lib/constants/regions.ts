@@ -3,6 +3,7 @@ export interface RegionConfig {
   name: string;
   country: string; // for ACLED API
   countryCode: string; // ISO 2-letter for healthsites
+  iso3: string; // ISO 3-letter for HDX HAPI
   center: [number, number]; // [lat, lng]
   zoom: number;
   emergencyNumbers: { label: string; number: string }[];
@@ -14,6 +15,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Ukraine",
     country: "Ukraine",
     countryCode: "UA",
+    iso3: "UKR",
     center: [49.9935, 36.2304],
     zoom: 7,
     emergencyNumbers: [
@@ -27,6 +29,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Gaza / Palestine",
     country: "Palestine",
     countryCode: "PS",
+    iso3: "PSE",
     center: [31.4167, 34.3333],
     zoom: 11,
     emergencyNumbers: [
@@ -39,6 +42,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Sudan",
     country: "Sudan",
     countryCode: "SD",
+    iso3: "SDN",
     center: [15.5007, 32.5599],
     zoom: 6,
     emergencyNumbers: [
@@ -51,6 +55,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Myanmar",
     country: "Myanmar",
     countryCode: "MM",
+    iso3: "MMR",
     center: [19.7633, 96.0785],
     zoom: 6,
     emergencyNumbers: [
@@ -64,6 +69,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Yemen",
     country: "Yemen",
     countryCode: "YE",
+    iso3: "YEM",
     center: [15.3694, 44.191],
     zoom: 7,
     emergencyNumbers: [
@@ -76,6 +82,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Syria",
     country: "Syria",
     countryCode: "SY",
+    iso3: "SYR",
     center: [34.8021, 38.9968],
     zoom: 7,
     emergencyNumbers: [
@@ -89,6 +96,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Lebanon",
     country: "Lebanon",
     countryCode: "LB",
+    iso3: "LBN",
     center: [33.8547, 35.8623],
     zoom: 9,
     emergencyNumbers: [
@@ -101,6 +109,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Ethiopia",
     country: "Ethiopia",
     countryCode: "ET",
+    iso3: "ETH",
     center: [9.145, 40.4897],
     zoom: 6,
     emergencyNumbers: [
@@ -113,6 +122,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Somalia",
     country: "Somalia",
     countryCode: "SO",
+    iso3: "SOM",
     center: [5.1521, 46.1996],
     zoom: 6,
     emergencyNumbers: [
@@ -125,6 +135,7 @@ export const REGIONS: RegionConfig[] = [
     name: "DR Congo",
     country: "Democratic Republic of Congo",
     countryCode: "CD",
+    iso3: "COD",
     center: [-4.0383, 21.7587],
     zoom: 5,
     emergencyNumbers: [
@@ -137,6 +148,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Afghanistan",
     country: "Afghanistan",
     countryCode: "AF",
+    iso3: "AFG",
     center: [33.9391, 67.7100],
     zoom: 6,
     emergencyNumbers: [
@@ -149,6 +161,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Iran",
     country: "Iran",
     countryCode: "IR",
+    iso3: "IRN",
     center: [32.4279, 53.6880],
     zoom: 6,
     emergencyNumbers: [
@@ -162,6 +175,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Israel",
     country: "Israel",
     countryCode: "IL",
+    iso3: "ISR",
     center: [31.0461, 34.8516],
     zoom: 8,
     emergencyNumbers: [
@@ -176,6 +190,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Iraq",
     country: "Iraq",
     countryCode: "IQ",
+    iso3: "IRQ",
     center: [33.2232, 43.6793],
     zoom: 6,
     emergencyNumbers: [
@@ -188,6 +203,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Libya",
     country: "Libya",
     countryCode: "LY",
+    iso3: "LBY",
     center: [26.3351, 17.2283],
     zoom: 6,
     emergencyNumbers: [
@@ -200,6 +216,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Haiti",
     country: "Haiti",
     countryCode: "HT",
+    iso3: "HTI",
     center: [18.9712, -72.2852],
     zoom: 8,
     emergencyNumbers: [
@@ -212,6 +229,7 @@ export const REGIONS: RegionConfig[] = [
     name: "Mali",
     country: "Mali",
     countryCode: "ML",
+    iso3: "MLI",
     center: [17.5707, -3.9962],
     zoom: 6,
     emergencyNumbers: [

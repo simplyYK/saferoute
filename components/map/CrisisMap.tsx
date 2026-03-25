@@ -275,13 +275,14 @@ function ThermalLayer({ hotspots }: { hotspots: ThermalHotspot[] }) {
               weight: 1,
             }}
           >
-            <Popup maxWidth={220}>
+            <Popup maxWidth={240}>
               <div className="text-sm space-y-1">
                 <p className="font-bold text-red-600">Thermal Anomaly</p>
                 <p className="text-xs text-slate-500">{h.acq_date} {h.acq_time}</p>
                 <p className="text-xs">Brightness: {h.brightness.toFixed(0)} K</p>
                 <p className="text-xs">Fire Power: {h.frp.toFixed(1)} MW</p>
                 <p className="text-xs">Confidence: {h.confidence}</p>
+                <p className="text-[9px] text-slate-500 mt-1 italic">FIRMS detects heat signatures via satellite. In conflict zones, thermal anomalies may indicate fires, explosions, or industrial activity.</p>
                 <p className="text-[10px] text-slate-400">Source: NASA FIRMS VIIRS</p>
               </div>
             </Popup>

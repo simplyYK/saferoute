@@ -169,10 +169,10 @@ export default function EntryScreen() {
             transition={{ delay: 0.25, duration: 0.5 }}
             className="text-center mb-8"
           >
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold leading-tight mb-3">
-              When danger surrounds you,{" "}
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-bold leading-tight mb-3">
+              <span className="block whitespace-nowrap">When danger surrounds you,</span>
               <span
-                className="bg-clip-text text-transparent"
+                className="block whitespace-nowrap bg-clip-text text-transparent"
                 style={{ backgroundImage: "linear-gradient(135deg, #0EA5E9, #38BDF8, #7DD3FC)" }}
               >
                 Sentinel shows you the way out.

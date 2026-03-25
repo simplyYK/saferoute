@@ -15,9 +15,11 @@ import { useMapStore } from "@/store/mapStore";
 import {
   Plane, Activity, AlertTriangle, Satellite, FileText,
   Loader2, ChevronDown, Globe, LayoutDashboard, X,
-  TrendingUp, Radio, Crosshair, Zap, CloudSun
+  TrendingUp, Radio, Crosshair, Zap, CloudSun, BarChart3
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { Citation } from "@/components/shared/Citation";
+import CountryDeepDive from "@/components/intel/CountryDeepDive";
 
 // The 3D globe view is rendered by the full /globe page in an iframe to avoid prop complexity
 const GlobeFrame = dynamic(
@@ -35,7 +37,7 @@ const GlobeFrame = dynamic(
 
 // ─── Stat Card ───────────────────────────────────────────────────
 function StatCard({
-  icon: Icon, label, value, sub, color, alert, delay, trend
+  icon: Icon, label, value, sub, color, alert, delay, trend, citation
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -45,6 +47,7 @@ function StatCard({
   alert?: boolean;
   delay?: number;
   trend?: string;
+  citation?: string;
 }) {
   return (
     <motion.div
@@ -76,6 +79,7 @@ function StatCard({
       </div>
       <p className="text-xs text-white font-medium mt-0.5">{label}</p>
       {sub && <p className="text-[10px] text-slate-500 mt-0.5">{sub}</p>}
+      {citation && <Citation source={citation} />}
     </motion.div>
   );
 }
@@ -216,6 +220,7 @@ export default function IntelPage() {
 
   const [view, setView] = useState<"dashboard" | "globe">("dashboard");
   const [sitrepOpen, setSitrepOpen] = useState(false);
+  const [deepDiveOpen, setDeepDiveOpen] = useState(false);
 
   const milAlert = military.length > 0;
   const seismicAlert = seismic.filter((e) => e.magnitude >= 4.0).length > 0;
@@ -258,12 +263,12 @@ export default function IntelPage() {
 
       <div className="flex-1 mt-14 mb-14 flex flex-col overflow-hidden">
         {/* Header bar */}
-        <div className="flex items-center justify-between px-4 py-3 border-b border-white/6 shrink-0">
-          <div>
-            <h1 className="text-sm font-bold text-white tracking-wide">
-              THREAT INTELLIGENCE — <span className="text-teal">{viewCountry.toUpperCase()}</span>
+        <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-white/6 shrink-0 gap-2">
+          <div className="min-w-0">
+            <h1 className="text-xs sm:text-sm font-bold text-white tracking-wide truncate">
+              THREAT INTEL — <span className="text-teal">{viewCountry.toUpperCase()}</span>
             </h1>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider">Live multi-source fusion</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider hidden sm:block">Live multi-source fusion</p>
           </div>
           <div className="flex items-center gap-2">
             {/* View toggle */}
@@ -287,6 +292,16 @@ export default function IntelPage() {
                 <span className="hidden sm:block">3D Globe</span>
               </button>
             </div>
+            {/* Country Deep Dive */}
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
+              onClick={() => setDeepDiveOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/25 text-purple-400 text-xs font-semibold hover:bg-purple-500/20 transition-all"
+            >
+              <BarChart3 className="w-3 h-3" />
+              <span className="hidden sm:inline">Deep Dive</span>
+            </motion.button>
             {/* SITREP */}
             <motion.button
               whileHover={{ scale: 1.03 }}
@@ -338,6 +353,7 @@ export default function IntelPage() {
                   alert={conflicts.filter((e) => e.severity === "critical").length > 0}
                   trend={conflicts.length > 0 ? `${conflicts.filter((e) => e.severity === "critical").length} critical` : undefined}
                   delay={0}
+                  citation="ACLED"
                 />
                 <StatCard
                   icon={Plane}
@@ -348,6 +364,7 @@ export default function IntelPage() {
                   alert={milAlert}
                   trend={milAlert ? "↑ Active" : "— Clear"}
                   delay={0.06}
+                  citation="OpenSky"
                 />
                 <StatCard
                   icon={Activity}
@@ -358,6 +375,7 @@ export default function IntelPage() {
                   alert={seismicAlert}
                   trend={seismicAlert ? "↑ Alert" : undefined}
                   delay={0.12}
+                  citation="USGS"
                 />
                 <StatCard
                   icon={Radio}
@@ -367,6 +385,7 @@ export default function IntelPage() {
                   color="text-teal"
                   trend={reports.filter((r) => r.severity === "critical").length > 0 ? `${reports.filter((r) => r.severity === "critical").length} critical` : undefined}
                   delay={0.18}
+                  citation="Community"
                 />
                 <StatCard
                   icon={CloudSun}
@@ -376,6 +395,7 @@ export default function IntelPage() {
                   color="text-sky-400"
                   trend={weather ? `Vis ${weather.visibility >= 1000 ? `${(weather.visibility / 1000).toFixed(1)}km` : `${weather.visibility}m`}` : undefined}
                   delay={0.24}
+                  citation="Open-Meteo"
                 />
                 <StatCard
                   icon={TrendingUp}
@@ -385,6 +405,7 @@ export default function IntelPage() {
                   color="text-red-400"
                   alert={reports.filter((r) => r.severity === "critical").length > 0}
                   delay={0.3}
+                  citation="Community"
                 />
               </div>
 
@@ -497,6 +518,11 @@ export default function IntelPage() {
         conflicts={conflicts}
         reports={reports}
         seismic={seismic}
+      />
+      <CountryDeepDive
+        open={deepDiveOpen}
+        onClose={() => setDeepDiveOpen(false)}
+        viewCountry={viewCountry}
       />
     </div>
   );

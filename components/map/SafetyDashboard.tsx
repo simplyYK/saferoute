@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Shield, ChevronDown, ChevronUp, Flame, Crosshair, Newspaper, Plane, X, AlertTriangle, Wind } from "lucide-react";
 import { useRiskIntelligence } from "@/hooks/useRiskIntelligence";
+import { Citation } from "@/components/shared/Citation";
 
 export default function SafetyDashboard() {
   const { gsi, airspace, loading } = useRiskIntelligence();
@@ -190,7 +191,15 @@ export default function SafetyDashboard() {
                           valueColor={airspace.isClosed ? "#DC2626" : "#22C55E"}
                         />
                       )}
-                      <p className="text-[9px] text-slate-600 pt-1">GSI = (Shelter×0.35) − (Thermal×0.4) − (News×0.1) − (AQI×0.15)</p>
+                      <div className="pt-1 space-y-0.5">
+                        <p className="text-[9px] text-slate-600">GSI = 100 − Thermal − Conflict − AQI − News</p>
+                        <div className="flex flex-wrap gap-x-2">
+                          <Citation source="ACLED" />
+                          <Citation source="NASA FIRMS" />
+                          <Citation source="GDELT" />
+                          <Citation source="OpenSky" />
+                        </div>
+                      </div>
                     </div>
                   </motion.div>
                 )}
