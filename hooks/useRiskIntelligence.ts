@@ -23,6 +23,7 @@ export interface RiskIntelligenceState {
 
 export function useRiskIntelligence(): RiskIntelligenceState {
   const userLocation = useAppStore((s) => s.userLocation);
+  const mapCenter = useMapStore((s) => s.center);
   const viewCountry = useMapStore((s) => s.viewCountry);
   const [gsi, setGsi] = useState<GSIResult | null>(null);
   const [airspace, setAirspace] = useState<AirspaceStatus | null>(null);
@@ -31,11 +32,11 @@ export function useRiskIntelligence(): RiskIntelligenceState {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const compute = useCallback(async () => {
-    if (!userLocation) return;
+    // Use GPS if available, otherwise fall back to map center
+    const lat = userLocation?.lat ?? mapCenter[0];
+    const lng = userLocation?.lng ?? mapCenter[1];
+    if (!lat || !lng) return;
     setLoading(true);
-
-    const lat = userLocation.lat;
-    const lng = userLocation.lng;
     const oLat = obfuscateCoord(lat);
     const oLng = obfuscateCoord(lng);
     const radius = 0.05; // ~5km
@@ -103,7 +104,7 @@ export function useRiskIntelligence(): RiskIntelligenceState {
     } finally {
       setLoading(false);
     }
-  }, [userLocation, viewCountry]);
+  }, [userLocation, viewCountry, mapCenter]);
 
   useEffect(() => {
     void compute();

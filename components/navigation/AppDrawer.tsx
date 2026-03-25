@@ -16,8 +16,10 @@ interface Article {
   description: string;
   source: string;
   url: string;
+  link?: string;
   severity: "critical" | "warning" | "advisory" | "info";
-  publishedAt: string;
+  publishedAt?: string;
+  pubDate?: string;
   conflictZone?: string;
 }
 
@@ -54,8 +56,12 @@ const SEVERITY_FILTERS = [
 
 const ZONE_KEYWORDS = ["Ukraine", "Gaza", "Israel", "Iran", "Iraq", "Sudan", "Myanmar", "Yemen", "Syria", "Lebanon", "Somalia", "Afghanistan", "Congo", "Libya", "Mali", "Haiti", "Ethiopia"];
 
-function timeAgo(dateStr: string): string {
-  const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+function timeAgo(dateStr: string | undefined): string {
+  if (!dateStr) return "";
+  const t = Date.parse(dateStr);
+  if (!Number.isFinite(t)) return "";
+  const diff = (Date.now() - t) / 1000;
+  if (diff < 0 || diff > 365 * 86400) return "";
   if (diff < 60) return "just now";
   if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
@@ -250,7 +256,7 @@ export default function AppDrawer({ open, onClose }: AppDrawerProps) {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             transition={{ delay: i * 0.025 }}
-                            href={article.url}
+                            href={article.url || article.link || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
                             className={`block px-4 py-3 hover:bg-white/3 transition-colors border-l-2 ${colors.border} group`}
@@ -268,7 +274,7 @@ export default function AppDrawer({ open, onClose }: AppDrawerProps) {
                               <span className="text-[10px] text-slate-600">{article.source}</span>
                               <span className="text-[10px] text-slate-700 flex items-center gap-0.5">
                                 <Clock className="w-2.5 h-2.5" />
-                                {timeAgo(article.publishedAt)}
+                                {timeAgo(article.pubDate ?? article.publishedAt)}
                               </span>
                             </div>
                           </motion.a>

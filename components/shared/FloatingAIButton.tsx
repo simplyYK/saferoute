@@ -184,7 +184,7 @@ export default function FloatingAIButton() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[900] bg-black/40 backdrop-blur-sm"
+              className="fixed inset-0 z-[2500] bg-black/40 backdrop-blur-sm"
               onClick={() => setOpen(false)}
             />
             <motion.div
@@ -192,7 +192,7 @@ export default function FloatingAIButton() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", stiffness: 300, damping: 32 }}
-              className="fixed bottom-0 left-0 right-0 z-[901] bg-[#0d1424] rounded-t-3xl shadow-2xl border-t border-teal/15 flex flex-col"
+              className="fixed bottom-0 left-0 right-0 z-[2501] bg-[#0d1424] rounded-t-3xl shadow-2xl border-t border-teal/15 flex flex-col"
               style={{ height: "85vh" }}
             >
               {/* Header with tabs */}

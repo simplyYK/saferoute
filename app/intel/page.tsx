@@ -176,7 +176,7 @@ Format: THREAT LEVEL · SITUATION SUMMARY · KEY OBSERVATIONS · RECOMMENDED ACT
             initial={{ opacity: 0, y: 40, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.96 }}
-            className="fixed inset-x-4 top-[10%] z-[2001] max-w-lg mx-auto bg-[#0d1424] border border-teal/20 rounded-3xl shadow-2xl overflow-hidden"
+            className="fixed inset-x-4 top-[15%] bottom-[10%] z-[2001] max-w-lg mx-auto bg-[#0d1424] border border-teal/20 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
               <div className="flex items-center gap-2">
@@ -188,7 +188,7 @@ Format: THREAT LEVEL · SITUATION SUMMARY · KEY OBSERVATIONS · RECOMMENDED ACT
                 <X className="w-4 h-4" />
               </button>
             </div>
-            <div className="p-5 max-h-[60vh] overflow-y-auto">
+            <div className="p-5 flex-1 overflow-y-auto">
               {loading && !text ? (
                 <div className="flex items-center gap-2 text-slate-400 text-sm">
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -608,19 +608,44 @@ export default function IntelPage() {
                       <button
                         key={key}
                         onClick={() => toggleGlobeLayer(key)}
-                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all text-xs"
+                        className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all text-xs ${active ? "bg-white/5" : ""}`}
                       >
-                        <span className={`flex items-center gap-2 font-medium ${active ? color : "text-slate-500"}`}>
+                        <span className={`flex items-center gap-2 font-medium transition-colors ${active ? color : "text-slate-500"}`}>
                           <Icon className="w-3.5 h-3.5" />
                           {label}
                         </span>
-                        <div className={`w-8 h-4.5 rounded-full relative transition-colors ${active ? "bg-teal" : "bg-white/10"}`}>
-                          <div className={`absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow-sm transition-transform ${active ? "translate-x-[14px]" : "translate-x-0.5"}`} />
+                        <div
+                          className="w-9 h-5 rounded-full relative transition-colors shrink-0"
+                          style={{ background: active ? "#0EA5E9" : "rgba(255,255,255,0.08)" }}
+                        >
+                          <div
+                            className="absolute top-[3px] w-[14px] h-[14px] bg-white rounded-full shadow-sm transition-transform duration-200"
+                            style={{ transform: active ? "translateX(17px)" : "translateX(3px)" }}
+                          />
                         </div>
                       </button>
                     );
                   })}
                 </div>
+              </div>
+              {/* Legend */}
+              <div className="absolute bottom-4 right-3 z-[600] bg-[#0d1424]/95 backdrop-blur-xl border border-white/10 rounded-xl p-3 text-[10px] space-y-1.5 shadow-xl">
+                <p className="text-slate-400 font-semibold uppercase tracking-wider mb-1">Legend</p>
+                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-500" />Conflict Events</div>
+                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-yellow-400" />Community Reports</div>
+                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-blue-400" />Commercial Flights</div>
+                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-red-400" />Military Aircraft</div>
+                <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-orange-400" />Seismic Events</div>
+                {layers.satellites && (
+                  <>
+                    <div className="border-t border-white/8 pt-1.5 mt-1.5">
+                      <p className="text-slate-400 font-semibold uppercase tracking-wider mb-1">Satellites</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-slate-300"><span className="w-2.5 h-2.5 rounded-full bg-purple-400" />Starlink</div>
+                    <div className="flex items-center gap-2 text-slate-300"><span className="w-2.5 h-2.5 rounded-full bg-red-300" />Military</div>
+                    <div className="flex items-center gap-2 text-slate-300"><span className="w-2.5 h-2.5 rounded-full bg-cyan-400" />Weather</div>
+                  </>
+                )}
               </div>
               {/* Back to dashboard */}
               <button
