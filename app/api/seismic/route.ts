@@ -12,7 +12,7 @@ export async function GET() {
   try {
     const now = Date.now();
     if (cache && now - cache.at < CACHE_MS) {
-      return NextResponse.json(cache.data);
+      return NextResponse.json({ events: cache.data });
     }
 
     const res = await fetch(USGS, { next: { revalidate: 0 } });
@@ -63,8 +63,8 @@ export async function GET() {
     }
 
     cache = { at: Date.now(), data: out };
-    return NextResponse.json(out);
+    return NextResponse.json({ events: out });
   } catch {
-    return NextResponse.json([]);
+    return NextResponse.json({ events: [] });
   }
 }

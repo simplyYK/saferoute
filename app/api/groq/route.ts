@@ -48,17 +48,21 @@ function contextBlock(context: Record<string, unknown> | undefined): string {
   }
 }
 
+function isRealKey(k: string | undefined, prefix: string): k is string {
+  return !!k && k.startsWith(prefix) && !k.includes("your-");
+}
+
 function getProvider():
   | { kind: "groq"; key: string }
   | { kind: "openai"; key: string }
   | { kind: "gemini"; key: string }
   | null {
-  const g = process.env.GROQ_API_KEY;
-  if (g) return { kind: "groq", key: g };
   const o = process.env.OPENAI_API_KEY;
-  if (o) return { kind: "openai", key: o };
+  if (isRealKey(o, "sk-")) return { kind: "openai", key: o };
+  const g = process.env.GROQ_API_KEY;
+  if (isRealKey(g, "gsk_")) return { kind: "groq", key: g };
   const m = process.env.GEMINI_API_KEY;
-  if (m) return { kind: "gemini", key: m };
+  if (isRealKey(m, "AIza")) return { kind: "gemini", key: m };
   return null;
 }
 
