@@ -24,18 +24,21 @@ export const SEVERITY_LEVELS = [
   { id: "positive", icon: "🟢", color: "#22C55E", activeClass: "bg-green-600 text-white border-green-600" },
 ] as const;
 
+// All community reports expire after 20 days (480 hours)
+const TWENTY_DAYS = 480;
+
 export const REPORT_EXPIRY_HOURS: Record<string, number> = {
-  shelling: 4,
-  gunfire: 4,
-  chemical_threat: 4,
-  medical_emergency: 4,
-  unexploded_ordnance: 72,
-  military_presence: 12,
-  checkpoint: 24,
-  blocked_road: 12,
-  damaged_infrastructure: 48,
-  safe_passage: 6,
-  shelter_available: 24,
-  aid_distribution: 12,
-  other: 24,
+  shelling: TWENTY_DAYS,
+  gunfire: TWENTY_DAYS,
+  chemical_threat: TWENTY_DAYS,
+  medical_emergency: TWENTY_DAYS,
+  unexploded_ordnance: TWENTY_DAYS,
+  military_presence: TWENTY_DAYS,
+  checkpoint: TWENTY_DAYS,
+  blocked_road: TWENTY_DAYS,
+  damaged_infrastructure: TWENTY_DAYS,
+  safe_passage: TWENTY_DAYS,
+  shelter_available: TWENTY_DAYS,
+  aid_distribution: TWENTY_DAYS,
+  other: TWENTY_DAYS,
 };
