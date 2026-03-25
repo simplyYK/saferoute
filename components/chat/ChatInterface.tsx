@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Send, Loader2, Bot, Trash2, AlertTriangle, Plane, Activity, MapPin, Car, Phone, Shield } from "lucide-react";
+import { Send, Loader2, Bot, Trash2, AlertTriangle, Plane, Activity, MapPin, Car, Phone } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useAppStore } from "@/store/appStore";
 import { useMapStore } from "@/store/mapStore";
@@ -18,46 +18,44 @@ const QUICK_ACTIONS = [
 const WELCOME: ChatMessage = {
   id: "welcome",
   role: "assistant",
-  content: "I'm SafeRoute Intelligence Analyst. I have access to live conflict events, flight tracking, seismic data, and satellite positions.\n\nHow can I help you assess the situation?",
+  content: "I'm your **SafeRoute intelligence analyst**. Ask about threats, movement, triage, resources, or evacuation — I'll use the live context loaded from your session.\n\nStay concise. Stay safe.",
   timestamp: new Date(),
 };
 
 export default function ChatInterface({ className = "" }: { className?: string }) {
   const { language } = useAppStore();
-  const globeLayers = useMapStore((s) => s.globeLayers);
+  const { viewCountry, center, bounds } = useMapStore();
   const [messages, setMessages] = useState<ChatMessage[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [liveCounts, setLiveCounts] = useState({ reports: 0, flights: 0, seismic: 0 });
+  const [seismicCount, setSeismicCount] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
   }, [messages]);
 
-  // Pull rough live counts from cached API data
   useEffect(() => {
     let cancelled = false;
-    const fetchCounts = async () => {
+    void (async () => {
       try {
-        const [seismicRes] = await Promise.allSettled([
-          fetch("/api/seismic"),
-        ]);
-        if (cancelled) return;
-        let seismic = 0;
-        if (seismicRes.status === "fulfilled" && seismicRes.value.ok) {
-          const d = await seismicRes.value.json() as { events?: unknown[] };
-          seismic = d.events?.length ?? 0;
+        const res = await fetch("/api/seismic");
+        if (res.ok && !cancelled) {
+          const d = await res.json() as { events?: unknown[] };
+          setSeismicCount(d.events?.length ?? 0);
         }
-        setLiveCounts((prev) => ({ ...prev, seismic }));
       } catch { /* ignore */ }
-    };
-    void fetchCounts();
+    })();
     return () => { cancelled = true; };
   }, []);
+
+  const buildContext = useCallback(() => ({
+    country: viewCountry,
+    mapCenter: { lat: center[0], lng: center[1] },
+    mapBounds: bounds,
+    recentSeismic: seismicCount,
+  }), [viewCountry, center, bounds, seismicCount]);
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -72,22 +70,15 @@ export default function ChatInterface({ className = "" }: { className?: string }
       setLoading(true);
 
       const history = [...messages.filter((m) => m.id !== "welcome"), userMsg].map((m) => ({
-        role: m.role,
-        content: m.content,
+        role: m.role, content: m.content,
       }));
-
-      const context = {
-        activeReports: liveCounts.reports || undefined,
-        nearbyFlights: liveCounts.flights || undefined,
-        recentSeismic: liveCounts.seismic || undefined,
-      };
 
       try {
         abortRef.current = new AbortController();
         const res = await fetch("/api/groq", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: history, language, context }),
+          body: JSON.stringify({ messages: history, language, context: buildContext() }),
           signal: abortRef.current.signal,
         });
 
@@ -113,63 +104,49 @@ export default function ChatInterface({ className = "" }: { className?: string }
                 const parsed = JSON.parse(data) as { content?: string };
                 if (parsed.content) {
                   full += parsed.content;
-                  setMessages((prev) =>
-                    prev.map((m) => (m.id === assistantId ? { ...m, content: full } : m))
-                  );
+                  setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, content: full } : m)));
                 }
               } catch { /* skip */ }
             }
           }
         }
-
         setMessages((prev) => prev.map((m) => (m.id === assistantId ? { ...m, isStreaming: false } : m)));
       } catch (e) {
         if (e instanceof Error && e.name === "AbortError") return;
         const errMsg = e instanceof Error ? e.message : "Unknown error";
         setMessages((prev) =>
-          prev.map((m) =>
-            m.id === assistantId
-              ? { ...m, content: `Error: ${errMsg}\n\nPlease try again.`, isStreaming: false }
-              : m
-          )
+          prev.map((m) => m.id === assistantId ? { ...m, content: `Error: ${errMsg}\n\nPlease try again.`, isStreaming: false } : m)
         );
       } finally {
         setLoading(false);
       }
     },
-    [loading, messages, language, liveCounts]
+    [loading, messages, language, buildContext]
   );
 
   const clear = () => setMessages([WELCOME]);
 
-  const isDesktop = typeof window !== "undefined" && window.innerWidth >= 1024;
-
   return (
     <div className={`flex flex-col h-full bg-white ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-navy text-white">
-        <div className="flex items-center gap-2">
-          <Bot className="w-5 h-5 text-teal" />
-          <h2 className="font-semibold">Crisis Assistant</h2>
-          {isDesktop && (
-            <span className="ml-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-teal/20 text-teal border border-teal/30 uppercase tracking-wide">
-              Intelligence Mode
-            </span>
-          )}
+      <div className="flex items-center justify-between px-4 py-3 border-b bg-navy text-white gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <Bot className="w-5 h-5 text-teal shrink-0" />
+          <h2 className="font-semibold truncate">Intelligence Assistant</h2>
+          <span className="hidden md:inline-flex items-center rounded-full border border-teal/40 bg-teal/10 text-teal text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 shrink-0">
+            Intelligence Mode
+          </span>
         </div>
-        <button onClick={clear} className="p-1 hover:text-slate-300 transition-colors" aria-label="Clear chat">
+        <button onClick={clear} className="p-1 hover:text-slate-300 transition-colors shrink-0" aria-label="Clear chat">
           <Trash2 className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Live data summary */}
-      {(liveCounts.reports > 0 || liveCounts.flights > 0 || liveCounts.seismic > 0) && (
-        <div className="px-4 py-2 bg-slate-900 text-slate-400 text-[11px] flex gap-3 flex-wrap border-b border-slate-800">
-          {liveCounts.reports > 0 && <span>📍 {liveCounts.reports} active reports</span>}
-          {liveCounts.flights > 0 && <span>✈️ {liveCounts.flights} flights tracked</span>}
-          {liveCounts.seismic > 0 && <span>🌍 {liveCounts.seismic} seismic events (24h)</span>}
-        </div>
-      )}
+      {/* Live summary */}
+      <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 text-[11px] text-slate-500">
+        {viewCountry && <span>Region: {viewCountry}</span>}
+        {seismicCount > 0 && <span className="ml-3">🌍 {seismicCount} seismic events (24h)</span>}
+      </div>
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
@@ -177,9 +154,7 @@ export default function ChatInterface({ className = "" }: { className?: string }
           <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             <div
               className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
-                msg.role === "user"
-                  ? "bg-teal text-white"
-                  : "bg-slate-100 text-slate-900"
+                msg.role === "user" ? "bg-teal text-white" : "bg-slate-100 text-slate-900"
               }`}
             >
               {msg.role === "assistant" ? (
@@ -194,7 +169,7 @@ export default function ChatInterface({ className = "" }: { className?: string }
         ))}
       </div>
 
-      {/* Quick actions (when chat is near empty) */}
+      {/* Quick actions */}
       {messages.length <= 2 && (
         <div className="px-4 pb-2">
           <p className="text-xs text-slate-500 mb-2">Quick Actions:</p>
@@ -202,7 +177,8 @@ export default function ChatInterface({ className = "" }: { className?: string }
             {QUICK_ACTIONS.map(({ icon: Icon, label, prompt }) => (
               <button
                 key={label}
-                onClick={() => sendMessage(prompt)}
+                type="button"
+                onClick={() => void sendMessage(prompt)}
                 className="flex items-center gap-2 text-xs px-3 py-2 rounded-xl border-2 border-slate-200 hover:border-teal hover:text-teal transition-colors text-left min-h-[44px]"
               >
                 <Icon className="w-4 h-4 shrink-0" />
@@ -219,13 +195,14 @@ export default function ChatInterface({ className = "" }: { className?: string }
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage(input)}
-          placeholder="Ask the analyst..."
+          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && void sendMessage(input)}
+          placeholder="Ask the analyst…"
           disabled={loading}
           className="flex-1 border-2 border-slate-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-teal min-h-[48px]"
         />
         <button
-          onClick={() => sendMessage(input)}
+          type="button"
+          onClick={() => void sendMessage(input)}
           disabled={!input.trim() || loading}
           className="bg-teal hover:bg-sky-400 text-white p-3 rounded-xl disabled:opacity-50 min-w-[48px] min-h-[48px] flex items-center justify-center"
           aria-label="Send"

@@ -3,13 +3,14 @@ import { Shield, Search } from "lucide-react";
 import Link from "next/link";
 import SOSButton from "@/components/shared/SOSButton";
 import LanguageSwitcher from "@/components/shared/LanguageSwitcher";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 interface TopBarProps {
   onSearch?: (query: string) => void;
+  extraActions?: ReactNode;
 }
 
-export default function TopBar({ onSearch }: TopBarProps) {
+export default function TopBar({ onSearch, extraActions }: TopBarProps) {
   const [query, setQuery] = useState("");
 
   const handleSearch = (e: React.FormEvent) => {
@@ -35,6 +36,7 @@ export default function TopBar({ onSearch }: TopBarProps) {
         />
       </form>
 
+      {extraActions}
       <LanguageSwitcher compact />
       <SOSButton />
     </header>

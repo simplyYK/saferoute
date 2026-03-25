@@ -16,6 +16,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 import { useMapStore } from "@/store/mapStore";
+import { useAppStore } from "@/store/appStore";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useReports } from "@/hooks/useReports";
 import { useConflictData } from "@/hooks/useConflictData";
@@ -34,10 +35,10 @@ L.Icon.Default.mergeOptions({
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
 });
 
-function createDivIcon(emoji: string, bg: string, size = 32) {
+function createDivIcon(emoji: string, bg: string, size = 32, extraClass = "") {
   return L.divIcon({
     className: "",
-    html: `<div style="width:${size}px;height:${size}px;background:${bg};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white">${emoji}</div>`,
+    html: `<div class="${extraClass}" style="width:${size}px;height:${size}px;background:${bg};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:${size * 0.5}px;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:2px solid white">${emoji}</div>`,
     iconSize: [size, size],
     iconAnchor: [size / 2, size / 2],
     popupAnchor: [0, -(size / 2)],
@@ -63,12 +64,12 @@ function MapEvents() {
 function UserLocationMarker() {
   const map = useMap();
   const { latitude, longitude } = useGeolocation();
-  const { setUserLocation } = useMapStore() as unknown as { setUserLocation: (l: { lat: number; lng: number }) => void };
+  const setUserLocation = useAppStore((s) => s.setUserLocation);
 
   useEffect(() => {
     if (latitude && longitude) {
       map.flyTo([latitude, longitude], 13, { animate: true, duration: 1.5 });
-      if (setUserLocation) setUserLocation({ lat: latitude, lng: longitude });
+      setUserLocation({ lat: latitude, lng: longitude });
     }
   }, [latitude, longitude, map, setUserLocation]);
 
@@ -88,7 +89,7 @@ function UserLocationMarker() {
   );
 }
 
-function ConflictMarkers({ events }: { events: ConflictEvent[] }) {
+function ConflictMarkers({ events, conflictIconClass }: { events: ConflictEvent[]; conflictIconClass: string }) {
   const severityColors: Record<string, string> = {
     critical: "#DC2626",
     high: "#F97316",
@@ -100,7 +101,7 @@ function ConflictMarkers({ events }: { events: ConflictEvent[] }) {
     <>
       {events.map((e) => {
         const color = severityColors[e.severity] || "#6B7280";
-        const icon = createDivIcon("⚠️", color, 28);
+        const icon = createDivIcon("⚠️", color, 28, conflictIconClass);
         return (
           <Marker
             key={e.id}
@@ -189,9 +190,16 @@ interface CrisisMapProps {
 }
 
 export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
-  const { center, zoom, activeLayers, selectedRoute, routes } = useMapStore();
+  const { center, zoom, activeLayers, selectedRoute, routes, setViewCountry } = useMapStore();
+  const visualMode = useAppStore((s) => s.visualMode);
   const { reports } = useReports();
   const { events } = useConflictData(country);
+
+  useEffect(() => {
+    setViewCountry(country);
+  }, [country, setViewCountry]);
+
+  const conflictIconClass = visualMode === "flir" ? "conflict-marker-flir" : "";
 
   const defaultCenter: [number, number] = [
     center[0] || MAP_CONFIG.DEFAULT_LAT,
@@ -203,7 +211,7 @@ export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
       center={defaultCenter}
       zoom={zoom || MAP_CONFIG.DEFAULT_ZOOM}
       zoomControl={false}
-      style={{ width: "100%", height: "calc(100vh - 7rem)" }}
+      style={{ width: "100%", height: "100%" }}
       minZoom={MAP_CONFIG.MIN_ZOOM}
       maxZoom={MAP_CONFIG.MAX_ZOOM}
     >
@@ -216,7 +224,9 @@ export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
       <MapEvents />
       <UserLocationMarker />
 
-      {activeLayers.conflictEvents && <ConflictMarkers events={events} />}
+      {activeLayers.conflictEvents && (
+        <ConflictMarkers events={events} conflictIconClass={conflictIconClass} />
+      )}
       {activeLayers.reports && <ReportMarkers reports={reports} />}
 
       {(selectedRoute || routes.length > 0) && <RouteLayer />}

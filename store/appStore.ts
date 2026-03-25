@@ -2,17 +2,21 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type GlobeVisualMode = "standard" | "flir" | "night" | "crt";
+export type VisualMode = "standard" | "flir" | "night" | "crt";
+/** Globe page uses this alias (same values as map visual modes). */
+export type GlobeVisualMode = VisualMode;
 
 interface AppState {
   language: string;
   userLocation: { lat: number; lng: number } | null;
   isOnline: boolean;
-  globeVisualMode: GlobeVisualMode;
+  globeVisualMode: VisualMode;
+  visualMode: VisualMode;
   setLanguage: (lang: string) => void;
   setUserLocation: (location: { lat: number; lng: number } | null) => void;
   setIsOnline: (online: boolean) => void;
-  setGlobeVisualMode: (mode: GlobeVisualMode) => void;
+  setGlobeVisualMode: (mode: VisualMode) => void;
+  setVisualMode: (mode: VisualMode) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -22,14 +26,20 @@ export const useAppStore = create<AppState>()(
       userLocation: null,
       isOnline: true,
       globeVisualMode: "standard",
+      visualMode: "standard",
       setLanguage: (language) => set({ language }),
       setUserLocation: (location) => set({ userLocation: location }),
       setIsOnline: (online) => set({ isOnline: online }),
       setGlobeVisualMode: (globeVisualMode) => set({ globeVisualMode }),
+      setVisualMode: (visualMode) => set({ visualMode }),
     }),
     {
       name: "saferoute-app",
-      partialize: (state) => ({ language: state.language }),
+      partialize: (state) => ({
+        language: state.language,
+        visualMode: state.visualMode,
+        globeVisualMode: state.globeVisualMode,
+      }),
     }
   )
 );

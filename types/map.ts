@@ -41,10 +41,11 @@ export interface NewsArticle {
   id: string;
   title: string;
   url: string;
+  description?: string;
   imageUrl: string | null;
   source: string;
   publishedAt: string;
-  language: string;
-  country: string;
-  severity?: "critical" | "warning" | "advisory";
+  language?: string;
+  country?: string;
+  severity?: "critical" | "warning" | "advisory" | "info";
 }

@@ -1,16 +1,19 @@
 "use client";
 import dynamic from "next/dynamic";
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
 import TopBar from "@/components/navigation/TopBar";
 import BottomNav from "@/components/navigation/BottomNav";
 import { Layers, Eye, EyeOff } from "lucide-react";
 import { useMapStore } from "@/store/mapStore";
+import { useAppStore } from "@/store/appStore";
+import VisualModeSelector from "@/components/map/VisualModeSelector";
+import SitrepLauncher from "@/components/map/SitrepLauncher";
 
 const CrisisMap = dynamic(() => import("@/components/map/CrisisMap"), {
   ssr: false,
   loading: () => (
-    <div className="flex-1 bg-slate-200 animate-pulse flex items-center justify-center">
+    <div className="flex-1 bg-slate-200 animate-pulse flex items-center justify-center h-full">
       <p className="text-slate-500 text-sm">Loading map...</p>
     </div>
   ),
@@ -47,7 +50,9 @@ function LayerControls() {
               }`}
             >
               {activeLayers[key] ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-              <span>{emoji} {label}</span>
+              <span>
+                {emoji} {label}
+              </span>
             </button>
           ))}
         </div>
@@ -69,26 +74,71 @@ function MapContent() {
     Syria: "Syria",
   };
 
-  return (
-    <CrisisMap country={regionToCountry[region] || region} />
-  );
+  return <CrisisMap country={regionToCountry[region] || region} />;
 }
 
 export default function MapPage() {
+  const visualMode = useAppStore((s) => s.visualMode);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("crt-mode", visualMode === "crt");
+    return () => document.documentElement.classList.remove("crt-mode");
+  }, [visualMode]);
+
+  const filterStyle: CSSProperties | undefined =
+    visualMode === "flir"
+      ? { filter: "saturate(0%) brightness(1.5) contrast(2)" }
+      : visualMode === "night"
+        ? { filter: "saturate(0%) brightness(1.2) contrast(1.3)" }
+        : undefined;
+
   return (
-    <div className="h-screen flex flex-col bg-navy overflow-hidden">
-      <TopBar />
-      <div className="flex-1 relative mt-14 mb-14 min-h-0 h-full">
-        <Suspense
-          fallback={
-            <div className="flex-1 bg-slate-200 animate-pulse flex items-center justify-center">
-              <p className="text-slate-500">Loading...</p>
-            </div>
-          }
+    <div
+      className={`h-screen flex flex-col bg-navy overflow-hidden ${
+        visualMode === "night" ? "map-shell-night-vision" : ""
+      }`}
+    >
+      <TopBar extraActions={<SitrepLauncher />} />
+      <div className="flex-1 relative mt-14 mb-14 min-h-0">
+        <div
+          className={`absolute inset-0 ${visualMode === "flir" ? "map-visual-flir" : ""}`}
+          style={filterStyle}
         >
-          <MapContent />
-          <LayerControls />
-        </Suspense>
+          {visualMode === "flir" && (
+            <div
+              className="absolute inset-0 pointer-events-none z-[450]"
+              style={{
+                background: "radial-gradient(circle, rgba(255,100,0,0.3), transparent 70%)",
+              }}
+            />
+          )}
+          {visualMode === "night" && (
+            <>
+              <div
+                className="absolute inset-0 pointer-events-none z-[450]"
+                style={{ background: "rgba(0, 255, 70, 0.12)" }}
+              />
+              <div
+                className="absolute inset-0 pointer-events-none z-[451]"
+                style={{
+                  background:
+                    "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.12) 2px, rgba(0,0,0,0.12) 4px)",
+                }}
+              />
+            </>
+          )}
+          <Suspense
+            fallback={
+              <div className="h-full bg-slate-200 animate-pulse flex items-center justify-center">
+                <p className="text-slate-500">Loading...</p>
+              </div>
+            }
+          >
+            <MapContent />
+          </Suspense>
+        </div>
+        <VisualModeSelector />
+        <LayerControls />
       </div>
       <BottomNav />
     </div>

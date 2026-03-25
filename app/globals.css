@@ -68,6 +68,70 @@ body {
   border-radius: 2px;
 }
 
+/* Map shell — CRT full-viewport scanlines (html.crt-mode) */
+html.crt-mode::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.15) 2px,
+    rgba(0, 0, 0, 0.15) 4px
+  );
+  pointer-events: none;
+  z-index: 9999;
+}
+
+html.crt-mode::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  box-shadow: inset 0 0 120px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 9998;
+}
+
+/* Night vision text tint (map page shell) */
+.map-shell-night-vision {
+  --nv-text: rgb(0, 255, 85);
+  color: var(--nv-text);
+}
+
+.map-shell-night-vision .text-slate-400,
+.map-shell-night-vision .text-slate-500,
+.map-shell-night-vision .text-slate-600,
+.map-shell-night-vision .text-slate-900 {
+  color: var(--nv-text) !important;
+}
+
+.map-shell-night-vision .bg-white {
+  color: rgb(15, 23, 42) !important;
+}
+
+@keyframes flir-marker-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+    filter: brightness(1.6);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    filter: brightness(1);
+  }
+}
+
+.map-visual-flir .conflict-marker-flir {
+  animation: flir-marker-pulse 1.2s ease-in-out infinite;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
