@@ -65,18 +65,25 @@ function LayerControls() {
 
 function MapContent() {
   const params = useSearchParams();
-  const region = params.get("region") || "Ukraine";
+  const viewCountry = useMapStore((s) => s.viewCountry);
+  const setViewCountry = useMapStore((s) => s.setViewCountry);
+  const region = params.get("region");
 
-  const regionToCountry: Record<string, string> = {
-    Ukraine: "Ukraine",
-    Gaza: "Palestine",
-    Sudan: "Sudan",
-    Myanmar: "Myanmar",
-    Yemen: "Yemen",
-    Syria: "Syria",
-  };
+  // If URL has a region param, sync it to the store once
+  useEffect(() => {
+    if (region) {
+      const regionToCountry: Record<string, string> = {
+        Ukraine: "Ukraine", Gaza: "Palestine", Sudan: "Sudan",
+        Myanmar: "Myanmar", Yemen: "Yemen", Syria: "Syria",
+        Lebanon: "Lebanon", Ethiopia: "Ethiopia", Somalia: "Somalia",
+        Afghanistan: "Afghanistan",
+      };
+      const country = regionToCountry[region] || region;
+      setViewCountry(country);
+    }
+  }, [region, setViewCountry]);
 
-  return <CrisisMap country={regionToCountry[region] || region} />;
+  return <CrisisMap country={viewCountry} />;
 }
 
 export default function MapPage() {

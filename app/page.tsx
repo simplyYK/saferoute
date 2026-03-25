@@ -142,7 +142,7 @@ export default function LandingPage() {
           <Globe className="w-4 h-4" /> Select your region or open the map to use your location
         </p>
         <div className="flex flex-wrap justify-center gap-2">
-          {["Ukraine", "Gaza", "Sudan", "Myanmar", "Yemen", "Syria"].map((region) => (
+          {["Ukraine", "Gaza", "Sudan", "Myanmar", "Yemen", "Syria", "Lebanon", "Ethiopia", "Somalia", "Afghanistan"].map((region) => (
             <Link
               key={region}
               href={`/map?region=${region}`}

@@ -62,11 +62,13 @@ export default function GlobePage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [quakeDetail]);
 
+  const viewCountry = useMapStore((s) => s.viewCountry);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
       try {
-        const res = await fetch("/api/acled?country=Ukraine");
+        const res = await fetch(`/api/acled?country=${encodeURIComponent(viewCountry)}`);
         const json = (await res.json()) as { features?: unknown[] };
         if (!cancelled && Array.isArray(json.features)) {
           setRawFeatures(json.features);
@@ -78,7 +80,7 @@ export default function GlobePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [viewCountry]);
 
   const conflictFeatures = useMemo((): ConflictPointFeature[] => {
     const out: ConflictPointFeature[] = [];

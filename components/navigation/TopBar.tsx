@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { type ReactNode } from "react";
 import SOSButton from "@/components/shared/SOSButton";
 import LanguageSwitcher from "@/components/shared/LanguageSwitcher";
+import RegionSelector from "@/components/shared/RegionSelector";
 import LocationSearch, { type LocationResult } from "@/components/shared/LocationSearch";
 import { useMapStore } from "@/store/mapStore";
 
@@ -39,6 +40,7 @@ export default function TopBar({ extraActions }: TopBarProps) {
       />
 
       {extraActions}
+      <RegionSelector />
       <LanguageSwitcher compact />
       <SOSButton />
     </header>
