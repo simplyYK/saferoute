@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import { Navigation, Loader2, Route as RouteIcon, Bot, AlertTriangle, ChevronDown, ChevronUp, Footprints, Car, Bike } from "lucide-react";
+import { Navigation, Loader2, Route as RouteIcon, Bot, AlertTriangle, ChevronDown, ChevronUp, Footprints, Car, Bike, Play } from "lucide-react";
 import { useMapStore } from "@/store/mapStore";
 import { useReports } from "@/hooks/useReports";
 import { useConflictData } from "@/hooks/useConflictData";
@@ -10,7 +10,11 @@ import { formatDistance, formatDuration } from "@/lib/utils/geo";
 import LocationSearch, { type LocationResult } from "@/components/shared/LocationSearch";
 import type { RouteData, ElevationStats } from "@/types/map";
 
-export default function RoutePlanner() {
+interface RoutePlannerProps {
+  onStartNavigation?: () => void;
+}
+
+export default function RoutePlanner({ onStartNavigation }: RoutePlannerProps = {}) {
   const params = useSearchParams();
   const { setRoutes, setSelectedRoute, selectedRoute, flyTo } = useMapStore();
   const { reports } = useReports();
@@ -336,6 +340,17 @@ export default function RoutePlanner() {
         )}
 
         {/* Step-by-step directions */}
+        {/* Start Navigation button */}
+        {selectedRoute && onStartNavigation && (
+          <button
+            onClick={onStartNavigation}
+            className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors"
+          >
+            <Play className="w-4 h-4" />
+            Start Navigation
+          </button>
+        )}
+
         {selectedRoute?.steps.length ? (
           <div className="border border-white/10 rounded-xl overflow-hidden">
             <button

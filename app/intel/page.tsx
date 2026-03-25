@@ -9,12 +9,13 @@ import { useReports } from "@/hooks/useReports";
 import { useFlights } from "@/hooks/useFlights";
 import { useSeismic } from "@/hooks/useSeismic";
 import { useConflictData } from "@/hooks/useConflictData";
+import { useWeather } from "@/hooks/useWeather";
 import { useAppStore } from "@/store/appStore";
 import { useMapStore } from "@/store/mapStore";
 import {
   Plane, Activity, AlertTriangle, Satellite, FileText,
   Loader2, ChevronDown, Globe, LayoutDashboard, X,
-  TrendingUp, Radio, Crosshair, Zap
+  TrendingUp, Radio, Crosshair, Zap, CloudSun
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -197,7 +198,6 @@ Format: THREAT LEVEL · SITUATION SUMMARY · KEY OBSERVATIONS · RECOMMENDED ACT
   );
 }
 
-// TODO P2: Weather API integration — add weather card to stats grid
 // TODO P2: UNOCHA ReliefWeb API integration — humanitarian situation data
 // TODO P2: Conflict heat map layer on globe view
 // TODO P2: Border crossing status indicators
@@ -212,6 +212,7 @@ export default function IntelPage() {
   const { events: conflicts } = useConflictData(viewCountry);
   const { commercial, military } = useFlights(true);
   const { events: seismic } = useSeismic(true);
+  const { weather } = useWeather();
 
   const [view, setView] = useState<"dashboard" | "globe">("dashboard");
   const [sitrepOpen, setSitrepOpen] = useState(false);
@@ -368,11 +369,12 @@ export default function IntelPage() {
                   delay={0.18}
                 />
                 <StatCard
-                  icon={Plane}
-                  label="Civil Aviation"
-                  value={commercial.length}
-                  sub={commercial.length > 0 ? "Airspace operational" : "No flights tracked"}
-                  color="text-blue-400"
+                  icon={CloudSun}
+                  label="Weather"
+                  value={weather ? `${Math.round(weather.temperature)}°` : "—"}
+                  sub={weather ? `${weather.condition} · Wind ${weather.windSpeed} km/h` : "Loading..."}
+                  color="text-sky-400"
+                  trend={weather ? `Vis ${weather.visibility >= 1000 ? `${(weather.visibility / 1000).toFixed(1)}km` : `${weather.visibility}m`}` : undefined}
                   delay={0.24}
                 />
                 <StatCard

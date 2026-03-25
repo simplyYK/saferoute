@@ -1,15 +1,19 @@
 "use client";
-import { Suspense, useEffect, type CSSProperties } from "react";
+import { Suspense, useEffect, useState, type CSSProperties } from "react";
 import dynamic from "next/dynamic";
 import TopBar from "@/components/navigation/TopBar";
 import BottomNav from "@/components/navigation/BottomNav";
 import RoutePlanner from "@/components/route/RoutePlanner";
+import NavigationMode from "@/components/route/NavigationMode";
 import { useAppStore } from "@/store/appStore";
+import { useMapStore } from "@/store/mapStore";
 
 const CrisisMap = dynamic(() => import("@/components/map/CrisisMap"), { ssr: false });
 
 export default function RoutePage() {
   const visualMode = useAppStore((s) => s.visualMode);
+  const selectedRoute = useMapStore((s) => s.selectedRoute);
+  const [navigating, setNavigating] = useState(false);
 
   useEffect(() => {
     document.documentElement.classList.toggle("crt-mode", visualMode === "crt");
@@ -29,6 +33,21 @@ export default function RoutePage() {
           ? { filter: "saturate(0%) brightness(0.3) contrast(3)" }
           : undefined;
 
+  if (navigating && selectedRoute) {
+    return (
+      <div className="h-screen flex flex-col overflow-hidden bg-[#0a0f1e]">
+        <div className="flex-1 relative">
+          <div className="absolute inset-0" style={filterStyle}>
+            <Suspense fallback={null}>
+              <CrisisMap />
+            </Suspense>
+          </div>
+          <NavigationMode route={selectedRoute} onEnd={() => setNavigating(false)} />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-[#0a0f1e]">
       <TopBar />
@@ -47,7 +66,7 @@ export default function RoutePage() {
         {/* Route planner panel */}
         <div className="w-full lg:w-[420px] flex flex-col overflow-hidden border-l border-white/8">
           <Suspense fallback={null}>
-            <RoutePlanner />
+            <RoutePlanner onStartNavigation={() => setNavigating(true)} />
           </Suspense>
         </div>
       </main>

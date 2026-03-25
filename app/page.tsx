@@ -96,6 +96,7 @@ export default function EntryScreen() {
         const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setUserLocation(coords);
         setCenter([coords.lat, coords.lng]);
+        setViewCountry("My Location");
         router.push("/map");
       },
       () => {
@@ -132,8 +133,10 @@ export default function EntryScreen() {
         </video>
 
         {/* Overlay gradients */}
-        <div className="absolute inset-0 bg-gradient-to-b from-[#060c1a]/90 via-[#060c1a]/50 to-[#060c1a]" />
+        <div className="absolute inset-0 bg-[#060c1a]/80" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#060c1a]/70 via-[#060c1a]/60 to-[#060c1a]" />
         <div className="absolute inset-0 bg-gradient-to-r from-[#060c1a]/40 via-transparent to-[#060c1a]/40" />
+        <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 30%, #060c1a 100%)" }} />
 
         {/* Hero content */}
         <motion.div

@@ -48,24 +48,26 @@ function LayerControls() {
   ];
 
   return (
-    <div className="absolute bottom-32 right-3 z-[500]">
+    <div className="absolute bottom-32 right-3 z-[500] flex flex-col-reverse items-end gap-2">
+      {/* Button always stays at this position */}
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setOpen(!open)}
-        className="bg-[#0d1424]/90 backdrop-blur-md text-white p-3 rounded-full shadow-xl border border-white/10 mb-2"
+        className="bg-[#0d1424]/90 backdrop-blur-md text-white p-3 rounded-full shadow-xl border border-white/10"
         aria-label="Map layers"
       >
         <Layers className="w-5 h-5 text-teal" />
       </motion.button>
 
+      {/* Panel opens above the button */}
       <AnimatePresence>
         {open && (
           <motion.div
             initial={{ opacity: 0, scale: 0.9, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9 }}
-            className="bg-[#0d1424]/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-3 w-52 mb-2 space-y-3"
+            className="bg-[#0d1424]/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/10 p-3 w-52 space-y-3"
           >
             {/* Core layers */}
             <div>

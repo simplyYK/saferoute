@@ -59,7 +59,7 @@ function RegionPicker() {
         className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-medium text-slate-300 hover:text-white bg-white/5 border border-white/8 hover:border-white/20 transition-all"
       >
         <MapPin className="w-3 h-3 text-teal" />
-        <span className="max-w-[60px] truncate">{currentRegion?.name ?? viewCountry}</span>
+        <span className="max-w-[80px] truncate">{viewCountry === "My Location" ? "My Location" : (currentRegion?.name ?? viewCountry)}</span>
         <ChevronDown className="w-3 h-3 text-slate-500" />
       </button>
       <AnimatePresence>
@@ -80,6 +80,7 @@ function RegionPicker() {
                   <>
                     <button
                       onClick={() => {
+                        setViewCountry("My Location");
                         setCenter([userLocation.lat, userLocation.lng]);
                         flyTo([userLocation.lat, userLocation.lng]);
                         setOpen(false);

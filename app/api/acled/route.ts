@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { SEED_CONFLICT_DATA } from "@/lib/constants/seed-conflict-data";
 
 interface ACLEDEvent {
   event_id_cnty: string;
@@ -69,7 +70,26 @@ export async function GET(request: NextRequest) {
 
   const apiKey = process.env.ACLED_API_KEY;
   if (!apiKey) {
-    return NextResponse.json({ type: "FeatureCollection", features: [], error: "ACLED_API_KEY not configured", count: 0 });
+    const seedEvents = SEED_CONFLICT_DATA[country] || [];
+    const features = seedEvents.map((e, i) => ({
+      type: "Feature" as const,
+      geometry: { type: "Point" as const, coordinates: [e.lng, e.lat] },
+      properties: {
+        id: `seed-${country}-${i}`,
+        event_date: e.event_date,
+        event_type: e.event_type,
+        sub_event_type: e.sub_event_type,
+        actor1: e.source,
+        actor2: "",
+        location: e.location,
+        admin1: e.admin1,
+        fatalities: e.fatalities,
+        notes: e.notes,
+        source: e.source,
+        severity: e.severity,
+      },
+    }));
+    return NextResponse.json({ type: "FeatureCollection", features, cached: false, count: features.length, source: "seed" });
   }
 
   const endDate = new Date().toISOString().split("T")[0];
