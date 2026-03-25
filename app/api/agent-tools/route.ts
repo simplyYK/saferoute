@@ -7,7 +7,9 @@ type ToolCall = {
   args: Record<string, unknown>;
 };
 
-const BASE = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+const BASE = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : (process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000");
 
 async function fetchInternal(path: string, init?: RequestInit) {
   const res = await fetch(`${BASE}${path}`, init);

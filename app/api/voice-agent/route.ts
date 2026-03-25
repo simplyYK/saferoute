@@ -18,7 +18,9 @@ export const dynamic = "force-dynamic";
  *   Body: { "query": "$query", "lat": "$lat", "lng": "$lng", "country": "$country" }
  */
 
-const BASE = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+const BASE = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : (process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000");
 
 export async function POST(request: NextRequest) {
   try {

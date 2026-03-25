@@ -4,7 +4,9 @@ export const dynamic = "force-dynamic";
 
 const API_KEY = process.env.ELEVENLABS_API_KEY;
 const AGENT_ID = process.env.NEXT_PUBLIC_ELEVENLABS_AGENT_ID;
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+const BASE_URL = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : (process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000");
 
 const SYSTEM_PROMPT = `You are Sentinel AI — a voice-based crisis intelligence analyst. You help civilians survive in active conflict zones. You speak with calm authority. Every second matters.
 

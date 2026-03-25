@@ -110,7 +110,9 @@ function sseLine(obj: unknown): string {
   return `data: ${JSON.stringify(obj)}\n\n`;
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+const BASE_URL = process.env.VERCEL_URL
+  ? `https://${process.env.VERCEL_URL}`
+  : (process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000");
 
 async function executeToolCalls(toolCalls: ToolCall[]): Promise<{ tool_call_id: string; name: string; result: unknown }[]> {
   const results = await Promise.all(
