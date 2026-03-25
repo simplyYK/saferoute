@@ -126,27 +126,97 @@ function ConflictMarkers({ events, conflictIconClass }: { events: ConflictEvent[
     medium: "#F59E0B",
     low: "#3B82F6",
   };
+  const severityLabels: Record<string, string> = {
+    critical: "CRITICAL",
+    high: "HIGH",
+    medium: "MODERATE",
+    low: "LOW",
+  };
+
+  function timeAgo(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    if (!Number.isFinite(diff) || diff < 0) return "";
+    const h = Math.floor(diff / 3600000);
+    if (h < 1) return "< 1 hour ago";
+    if (h < 24) return `${h}h ago`;
+    const d = Math.floor(h / 24);
+    return `${d}d ago`;
+  }
 
   return (
     <>
       {events.map((e) => {
         const color = severityColors[e.severity] || "#6B7280";
         const icon = createDivIcon("⚠️", color, 28, conflictIconClass);
+        const ago = timeAgo(e.event_date);
         return (
           <Marker
             key={e.id}
             position={[e.latitude, e.longitude]}
             icon={icon}
           >
-            <Popup maxWidth={280}>
-              <div className="text-sm space-y-1">
-                <p className="font-bold" style={{ color }}>{e.event_type}</p>
-                <p className="text-xs text-slate-500">{e.event_date} · {e.location}</p>
-                {e.fatalities > 0 && (
-                  <p className="text-xs text-red-600">Fatalities: {e.fatalities}</p>
+            <Popup maxWidth={320}>
+              <div style={{ fontFamily: "Inter, system-ui, sans-serif", fontSize: "12px", lineHeight: "1.5", maxWidth: "300px" }}>
+                {/* Header: severity badge + event type */}
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", marginBottom: "6px" }}>
+                  <span style={{
+                    backgroundColor: color,
+                    color: "#fff",
+                    fontSize: "9px",
+                    fontWeight: 700,
+                    padding: "2px 6px",
+                    borderRadius: "4px",
+                    letterSpacing: "0.05em",
+                  }}>
+                    {severityLabels[e.severity] || "UNKNOWN"}
+                  </span>
+                  <span style={{ fontWeight: 600, color: "#1e293b" }}>{e.event_type}</span>
+                </div>
+
+                {/* Sub-event type */}
+                {e.sub_event_type && (
+                  <p style={{ color: "#64748b", fontSize: "11px", margin: "0 0 4px" }}>
+                    {e.sub_event_type}
+                  </p>
                 )}
-                <p className="text-xs">{e.notes?.slice(0, 200)}</p>
-                <p className="text-xs text-slate-400">Source: {e.source}</p>
+
+                {/* Location + Date */}
+                <p style={{ color: "#475569", fontSize: "11px", margin: "0 0 4px" }}>
+                  📍 {e.location}{e.admin1 && e.admin1 !== e.location ? `, ${e.admin1}` : ""}
+                  <span style={{ color: "#94a3b8", marginLeft: "6px" }}>{e.event_date}{ago ? ` (${ago})` : ""}</span>
+                </p>
+
+                {/* Actors involved */}
+                {(e.actor1 || e.actor2) && (
+                  <div style={{ background: "#f1f5f9", borderRadius: "6px", padding: "5px 8px", margin: "4px 0", fontSize: "11px" }}>
+                    <span style={{ color: "#64748b", fontWeight: 600, fontSize: "9px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Actors</span>
+                    <p style={{ color: "#334155", margin: "2px 0 0" }}>{e.actor1}{e.actor2 ? ` vs ${e.actor2}` : ""}</p>
+                  </div>
+                )}
+
+                {/* Fatalities */}
+                {e.fatalities > 0 && (
+                  <p style={{ color: "#DC2626", fontWeight: 600, fontSize: "11px", margin: "4px 0" }}>
+                    ☠ {e.fatalities} fatalit{e.fatalities === 1 ? "y" : "ies"} reported
+                  </p>
+                )}
+                {e.fatalities === 0 && (
+                  <p style={{ color: "#16a34a", fontSize: "11px", margin: "4px 0" }}>
+                    No fatalities reported
+                  </p>
+                )}
+
+                {/* Notes / Description */}
+                {e.notes && (
+                  <p style={{ color: "#475569", fontSize: "11px", margin: "4px 0", borderTop: "1px solid #e2e8f0", paddingTop: "4px" }}>
+                    {e.notes.length > 300 ? e.notes.slice(0, 300) + "…" : e.notes}
+                  </p>
+                )}
+
+                {/* Source citation */}
+                <p style={{ color: "#94a3b8", fontSize: "10px", margin: "6px 0 0", borderTop: "1px solid #e2e8f0", paddingTop: "4px" }}>
+                  Source: {e.source || "ACLED"}
+                </p>
               </div>
             </Popup>
           </Marker>
