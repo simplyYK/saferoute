@@ -362,7 +362,7 @@ export default function IntelPage() {
                   <p className="text-sm text-red-300 font-medium">
                     {milAlert ? `${military.length} military aircraft active` : ""}
                     {milAlert && seismicAlert ? " · " : ""}
-                    {seismicAlert ? "Strong seismic detected" : ""}
+                    {seismicAlert ? "Strong seismic activity detected" : ""}
                     {" — elevated threat level"}
                   </p>
                 </motion.div>
@@ -581,7 +581,7 @@ export default function IntelPage() {
               </motion.button>
             </motion.div>
           ) : (
-            /* Globe view — rendered directly to share globe layer state */
+            /* Globe view — with layer panel on left */
             <motion.div
               key="globe"
               initial={{ opacity: 0 }}
@@ -598,6 +598,38 @@ export default function IntelPage() {
                 earthquakes={seismic}
                 satellites={satellites}
               />
+              {/* Layer toggle panel — left side overlay */}
+              <div className="absolute top-3 left-3 z-[600] w-52">
+                <div className="bg-[#0d1424]/95 backdrop-blur-xl border border-white/10 rounded-2xl p-3 space-y-1.5 shadow-2xl">
+                  <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold px-1 mb-2">Globe Layers</p>
+                  {GLOBE_LAYERS.map(({ key, label, icon: Icon, color }) => {
+                    const active = layers[key];
+                    return (
+                      <button
+                        key={key}
+                        onClick={() => toggleGlobeLayer(key)}
+                        className="w-full flex items-center justify-between px-3 py-2 rounded-xl transition-all text-xs"
+                      >
+                        <span className={`flex items-center gap-2 font-medium ${active ? color : "text-slate-500"}`}>
+                          <Icon className="w-3.5 h-3.5" />
+                          {label}
+                        </span>
+                        <div className={`w-8 h-4.5 rounded-full relative transition-colors ${active ? "bg-teal" : "bg-white/10"}`}>
+                          <div className={`absolute top-0.5 w-3.5 h-3.5 bg-white rounded-full shadow-sm transition-transform ${active ? "translate-x-[14px]" : "translate-x-0.5"}`} />
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Back to dashboard */}
+              <button
+                onClick={() => setView("dashboard")}
+                className="absolute bottom-4 left-3 z-[600] flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0d1424]/90 border border-white/10 text-xs font-medium text-slate-300 hover:text-white backdrop-blur-md transition-all"
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                Dashboard
+              </button>
             </motion.div>
           )}
         </AnimatePresence>
