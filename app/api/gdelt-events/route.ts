@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fipsToName } from "@/lib/constants/country-codes";
 
 export const dynamic = "force-dynamic";
 
@@ -16,22 +17,6 @@ export const dynamic = "force-dynamic";
  */
 
 const CONFLICT_ROOT_CODES = new Set(["14", "17", "18", "19", "20"]);
-
-// GDELT FIPS country codes → display names
-const CODE_MAP: Record<string, string> = {
-  UP: "Ukraine", SU: "Sudan", SY: "Syria", YM: "Yemen",
-  BM: "Myanmar", LE: "Lebanon", ET: "Ethiopia", SO: "Somalia",
-  GZ: "Palestine", IS: "Israel", IZ: "Iraq", AF: "Afghanistan",
-  CD: "Democratic Republic of Congo", LY: "Libya", HA: "Haiti", ML: "Mali",
-  IR: "Iran", RS: "Russia", PK: "Pakistan", NI: "Nigeria", EG: "Egypt",
-};
-
-// Country display name → FIPS codes (some countries have multiple)
-const COUNTRY_TO_CODES: Record<string, string[]> = {};
-for (const [code, name] of Object.entries(CODE_MAP)) {
-  if (!COUNTRY_TO_CODES[name]) COUNTRY_TO_CODES[name] = [];
-  COUNTRY_TO_CODES[name].push(code);
-}
 
 // CAMEO event descriptions
 const EVENT_TYPES: Record<string, string> = {
@@ -154,8 +139,8 @@ function parseCsv(csvText: string): GdeltEvent[] {
     if (!CONFLICT_ROOT_CODES.has(rootCode)) continue;
 
     const countryCode = cols[53] || cols[45];
-    const countryName = CODE_MAP[countryCode];
-    if (!countryName) continue; // Only events in our tracked countries
+    const countryName = fipsToName(countryCode);
+    if (!countryName) continue; // Skip events with unknown FIPS codes
 
     const lat = parseFloat(cols[56] || cols[48]);
     const lng = parseFloat(cols[57] || cols[49]);

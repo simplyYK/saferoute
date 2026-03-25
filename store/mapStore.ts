@@ -47,6 +47,8 @@ interface MapState {
   resources: MapResource[];
   refreshTick: number;
   routePinDrop: { lat: number; lng: number } | null;
+  routeOriginPin: { lat: number; lng: number } | null;
+  routeDestinationPin: { lat: number; lng: number } | null;
 
   setCenter: (center: [number, number]) => void;
   setZoom: (zoom: number) => void;
@@ -65,6 +67,8 @@ interface MapState {
   clearResources: () => void;
   triggerRefresh: () => void;
   setRoutePinDrop: (pin: { lat: number; lng: number } | null) => void;
+  setRouteOriginPin: (pin: { lat: number; lng: number } | null) => void;
+  setRouteDestinationPin: (pin: { lat: number; lng: number } | null) => void;
 }
 
 export const useMapStore = create<MapState>((set) => ({
@@ -120,4 +124,8 @@ export const useMapStore = create<MapState>((set) => ({
   triggerRefresh: () => set((state) => ({ refreshTick: state.refreshTick + 1 })),
   routePinDrop: null,
   setRoutePinDrop: (pin) => set({ routePinDrop: pin }),
+  routeOriginPin: null,
+  routeDestinationPin: null,
+  setRouteOriginPin: (pin) => set({ routeOriginPin: pin }),
+  setRouteDestinationPin: (pin) => set({ routeDestinationPin: pin }),
 }));

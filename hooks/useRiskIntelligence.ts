@@ -37,18 +37,20 @@ export function useRiskIntelligence(): RiskIntelligenceState {
   const mountedRef = useRef(true);
 
   const compute = useCallback(async () => {
-    // Use GPS if available, otherwise map center
-    const lat = userLocation?.lat ?? centerLat;
-    const lng = userLocation?.lng ?? centerLng;
+    // Use GPS only in "My Location" mode; otherwise use the map center
+    // so the GSI reflects the country the user is viewing, not their physical location
+    const lat = viewCountry === "My Location" && userLocation ? userLocation.lat : centerLat;
+    const lng = viewCountry === "My Location" && userLocation ? userLocation.lng : centerLng;
     if (lat === 0 && lng === 0) return;
     setLoading(true);
     const oLat = obfuscateCoord(lat);
     const oLng = obfuscateCoord(lng);
-    const radius = 0.05;
+    // Use 0.3° (~33km) radius so FIRMS fetch covers the full 20km thermal detection range
+    const firmsRadius = 0.3;
 
     try {
       const [firmsRes, newsRes, flightsRes, airQualityRes, conflictRes] = await Promise.allSettled([
-        fetch(`/api/firms?south=${oLat - radius}&north=${oLat + radius}&west=${oLng - radius}&east=${oLng + radius}`)
+        fetch(`/api/firms?south=${oLat - firmsRadius}&north=${oLat + firmsRadius}&west=${oLng - firmsRadius}&east=${oLng + firmsRadius}`)
           .then((r) => r.json()) as Promise<{ hotspots?: ThermalHotspot[] }>,
         fetch("/api/gdelt").then((r) => r.json()) as Promise<{ articles?: { severity: string }[] }>,
         fetch(`/api/opensky?lat=${oLat}&lng=${oLng}`).then((r) => r.json()) as Promise<{ lat: number; lng: number; onGround: boolean }[]>,
@@ -64,8 +66,12 @@ export function useRiskIntelligence(): RiskIntelligenceState {
         firmsRes.status === "fulfilled" ? (firmsRes.value.hotspots ?? []) : [];
       const articles: { severity: string }[] =
         newsRes.status === "fulfilled" ? (newsRes.value.articles ?? []) : [];
-      const flights: { lat: number; lng: number; onGround: boolean }[] =
-        flightsRes.status === "fulfilled" && Array.isArray(flightsRes.value) ? flightsRes.value : [];
+
+      // Track whether we actually received flight data (vs rate-limited empty response)
+      const rawFlights = flightsRes.status === "fulfilled" && Array.isArray(flightsRes.value)
+        ? flightsRes.value : [];
+      const flightsDataAvailable = flightsRes.status === "fulfilled" && rawFlights.length > 0;
+
       const airQuality =
         airQualityRes.status === "fulfilled" ? airQualityRes.value : { aqi: null, category: "Unknown" };
       const conflictEvents: ConflictPoint[] =
@@ -79,15 +85,20 @@ export function useRiskIntelligence(): RiskIntelligenceState {
 
       setHotspots(thermalHotspots);
 
+      // Compute airspace first so it feeds into the GSI score.
+      // Pass flightsDataAvailable so the detector doesn't fire on empty/rate-limited responses.
+      const airspaceStatus = checkAirspaceClosure(lat, lng, rawFlights, flightsDataAvailable);
+      setAirspace(airspaceStatus);
+
       const result = calculateGSI(
         0, lat, lng,
         thermalHotspots, articles,
         airQuality.aqi ?? null,
         airQuality.category ?? "Unknown",
         conflictEvents,
+        airspaceStatus.isClosed,
       );
       setGsi(result);
-      setAirspace(checkAirspaceClosure(lat, lng, flights));
     } catch (err) {
       console.error("[RiskIntelligence]", err);
     } finally {
@@ -102,15 +113,18 @@ export function useRiskIntelligence(): RiskIntelligenceState {
     return () => { mountedRef.current = false; };
   }, []);
 
-  // Reset GSI when country changes
+  // When country changes, immediately trigger a recompute instead of
+  // flashing the card to a loading skeleton. The stale score stays visible
+  // with a loading indicator until fresh data arrives.
   const prevCountry = useRef(viewCountry);
   useEffect(() => {
     if (prevCountry.current !== viewCountry) {
       prevCountry.current = viewCountry;
-      setGsi(null);
-      setAirspace(null);
+      setLoading(true);
+      // Bypass debounce so the new score arrives faster
+      void compute();
     }
-  }, [viewCountry]);
+  }, [viewCountry, compute]);
 
   // Debounced recompute when map center or country changes
   useEffect(() => {

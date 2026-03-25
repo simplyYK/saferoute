@@ -25,7 +25,7 @@ export interface ConflictStats {
 const statsCache = new Map<string, { data: ConflictStats; ts: number }>();
 const CACHE_TTL = 10 * 60 * 1000;
 
-export function useConflictStats(country: string) {
+export function useConflictStats(country: string, iso3?: string) {
   const [stats, setStats] = useState<ConflictStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +48,9 @@ export function useConflictStats(country: string) {
     }
 
     setLoading(true);
-    fetch(`/api/conflict-stats?country=${encodeURIComponent(country)}`)
+    const params = new URLSearchParams({ country });
+    if (iso3) params.set("iso3", iso3);
+    fetch(`/api/conflict-stats?${params}`)
       .then((r) => r.json())
       .then((data) => {
         if (!mountRef.current) return;
@@ -69,7 +71,7 @@ export function useConflictStats(country: string) {
       });
 
     return () => { mountRef.current = false; };
-  }, [country]);
+  }, [country, iso3]);
 
   return { stats, loading, error };
 }

@@ -5,6 +5,7 @@ import { X, Shield, Users, DollarSign, AlertTriangle, BarChart3, Heart } from "l
 import { useHumanitarianData } from "@/hooks/useHumanitarianData";
 import { Citation } from "@/components/shared/Citation";
 import { REGIONS } from "@/lib/constants/regions";
+import { nameToIso3 } from "@/lib/constants/country-codes";
 
 function formatNumber(n: number | null | undefined): string {
   if (n == null) return "—";
@@ -52,7 +53,7 @@ export default function CountryDeepDive({
   const region = REGIONS.find(
     (r) => r.country === displayCountry || r.name === displayCountry
   );
-  const iso3 = resolvedIso3 || region?.iso3 || "";
+  const iso3 = resolvedIso3 || region?.iso3 || nameToIso3(displayCountry) || "";
   const { nationalRisk, idps, funding, humanNeeds, conflictEvents, loading } = useHumanitarianData(iso3);
 
   const totalIDPs = idps.reduce((sum, d) => sum + (d.population || 0), 0);

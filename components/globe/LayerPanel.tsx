@@ -17,6 +17,23 @@ const ROWS: { key: LayerKey; label: string; emoji: string }[] = [
   { key: "cctv", label: "CCTV Feeds", emoji: "📷" },
 ];
 
+const LEGENDS: Partial<Record<LayerKey, { color: string; label: string }[]>> = {
+  satellites: [
+    { color: "#3B82F6", label: "Starlink" },
+    { color: "#EF4444", label: "Military" },
+    { color: "#94A3B8", label: "Weather / Other" },
+  ],
+  conflict: [{ color: "#DC2626", label: "Conflict event" }],
+  reports: [{ color: "#FBBF24", label: "Community report" }],
+  military: [{ color: "#F97316", label: "Military aircraft" }],
+  flights: [{ color: "#3B82F6", label: "Commercial flight" }],
+  seismic: [
+    { color: "#DC2626", label: "M5.0+" },
+    { color: "#F59E0B", label: "M3.0+" },
+    { color: "#3B82F6", label: "< M3.0" },
+  ],
+};
+
 type Counts = {
   conflict: number;
   reports: number;
@@ -119,6 +136,19 @@ export default function LayerPanel({ layers, onToggle, counts }: LayerPanelProps
                     </span>
                   </span>
                 </button>
+                {on && LEGENDS[key] && (
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1 ml-11">
+                    {LEGENDS[key]!.map((item) => (
+                      <span key={item.label} className="flex items-center gap-1 text-[9px] text-slate-400">
+                        <span
+                          className="inline-block w-2 h-2 rounded-full shrink-0"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        {item.label}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </li>
             );
           })}

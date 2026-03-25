@@ -53,12 +53,14 @@ function RegionPicker() {
   const [search, setSearch] = useState("");
   const [placeSuggestions, setPlaceSuggestions] = useState<PlacePrediction[]>([]);
   const [placesLoading, setPlacesLoading] = useState(false);
+  const [detecting, setDetecting] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const viewCountry = useMapStore((s) => s.viewCountry);
   const setViewCountry = useMapStore((s) => s.setViewCountry);
   const setCenter = useMapStore((s) => s.setCenter);
   const flyTo = useMapStore((s) => s.flyTo);
   const userLocation = useAppStore((s) => s.userLocation);
+  const setUserLocation = useAppStore((s) => s.setUserLocation);
 
   const currentRegion = REGIONS.find(
     (r) => r.country === viewCountry || r.name === viewCountry
@@ -100,6 +102,36 @@ function RegionPicker() {
   const handleSearchChange = (value: string) => {
     setSearch(value);
     fetchPlaces(value);
+  };
+
+  const handleDetectLocation = async () => {
+    setDetecting(true);
+    setOpen(false);
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 8000, enableHighAccuracy: false })
+      );
+      const { latitude: lat, longitude: lng } = pos.coords;
+      setUserLocation({ lat, lng });
+      setCenter([lat, lng]);
+      flyTo([lat, lng]);
+      // Reverse-geocode to real country name
+      try {
+        const res = await fetch(`/api/geocode?lat=${lat}&lng=${lng}`);
+        const data = (await res.json()) as { country?: string; countryCode?: string };
+        setViewCountry(data.country || "My Location");
+      } catch {
+        setViewCountry("My Location");
+      }
+    } catch {
+      // Permission denied or timeout — if we already have coords, just fly there
+      if (userLocation) {
+        setCenter([userLocation.lat, userLocation.lng]);
+        flyTo([userLocation.lat, userLocation.lng]);
+      }
+    } finally {
+      setDetecting(false);
+    }
   };
 
   const handlePlaceSelect = (prediction: PlacePrediction) => {
@@ -178,24 +210,19 @@ function RegionPicker() {
                   </div>
                 )}
 
-                {/* Current Location option */}
-                {userLocation && (
-                  <>
-                    <button
-                      onClick={() => {
-                        setViewCountry("My Location");
-                        setCenter([userLocation.lat, userLocation.lng]);
-                        flyTo([userLocation.lat, userLocation.lng]);
-                        setOpen(false);
-                      }}
-                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-green-400 hover:bg-green-500/10 transition-all flex items-center gap-1.5"
-                    >
-                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-                      My Location
-                    </button>
-                    <div className="border-b border-white/6 my-1" />
-                  </>
-                )}
+                {/* Detect My Location */}
+                <button
+                  onClick={() => void handleDetectLocation()}
+                  disabled={detecting}
+                  className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-green-400 hover:bg-green-500/10 transition-all flex items-center gap-1.5 disabled:opacity-60"
+                >
+                  {detecting
+                    ? <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                    : <MapPin className="w-3 h-3 shrink-0" />
+                  }
+                  {detecting ? "Detecting…" : "Detect My Location"}
+                </button>
+                <div className="border-b border-white/6 my-1" />
                 {filteredRegions.map((r) => {
                   const active = r.country === viewCountry || r.name === viewCountry;
                   return (
@@ -233,10 +260,14 @@ export default function TopBar({ extraActions }: TopBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const flyTo = useMapStore((s) => s.flyTo);
+  const setCenter = useMapStore((s) => s.setCenter);
+  const setViewCountry = useMapStore((s) => s.setViewCountry);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleSelect = (result: LocationResult) => {
     flyTo([result.lat, result.lng]);
+    setCenter([result.lat, result.lng]);
+    if (result.country) setViewCountry(result.country);
     if (!pathname.startsWith("/map") && !pathname.startsWith("/route") && !pathname.startsWith("/globe") && !pathname.startsWith("/intel")) {
       router.push("/map");
     }

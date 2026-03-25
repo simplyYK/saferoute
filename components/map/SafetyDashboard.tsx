@@ -197,12 +197,24 @@ export default function SafetyDashboard() {
                         <Row
                           icon={<Plane className="w-3 h-3 text-cyan-400" />}
                           label="Airspace"
-                          value={airspace.isClosed ? "CLOSED" : `${airspace.aircraftInRadius} aircraft`}
-                          valueColor={airspace.isClosed ? "#DC2626" : "#22C55E"}
+                          value={
+                            !airspace.dataAvailable
+                              ? "No data"
+                              : airspace.isClosed
+                                ? "CLOSED −40pts"
+                                : `${airspace.aircraftInRadius} aircraft`
+                          }
+                          valueColor={
+                            !airspace.dataAvailable
+                              ? "#64748b"
+                              : airspace.isClosed
+                                ? "#DC2626"
+                                : "#22C55E"
+                          }
                         />
                       )}
                       <div className="pt-1 space-y-0.5">
-                        <p className="text-[9px] text-slate-600">GSI = 100 − Thermal − Conflict − AQI − News</p>
+                        <p className="text-[9px] text-slate-600">GSI = 100 − Thermal − Conflict − AQI − News − Airspace</p>
                         <div className="flex flex-wrap gap-x-2">
                           <Citation source="ACLED" />
                           <Citation source="NASA FIRMS" />

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { Phone, Copy, Check, X, ArrowLeft, Share2 } from "lucide-react";
 import { useMapStore } from "@/store/mapStore";
 import { REGIONS, type RegionConfig } from "@/lib/constants/regions";
@@ -60,7 +61,7 @@ export default function SOSButton() {
         SOS
       </button>
 
-      {open && (
+      {open && createPortal(
         <div className="fixed inset-0 z-[9999] flex items-start justify-center bg-black/70 p-4 pt-20 overflow-y-auto">
           <div className="bg-[#0d1424] rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-red-500/30 max-h-[calc(100vh-6rem)]">
             {/* Header with close */}
@@ -139,7 +140,8 @@ export default function SOSButton() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

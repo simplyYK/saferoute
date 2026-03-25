@@ -221,7 +221,7 @@ export default function IntelPage() {
 
   const { reports } = useReports();
   const { events: conflicts, loading: conflictsLoading } = useConflictData(effectiveCountry);
-  const { stats: conflictStats, loading: statsLoading } = useConflictStats(effectiveCountry);
+  const { stats: conflictStats, loading: statsLoading } = useConflictStats(effectiveCountry, resolvedIso3);
   const mapCenter = useMapStore((s) => s.center);
   const { commercial, military, loading: flightsLoading } = useFlights(true, mapCenter);
   const { events: seismic, loading: seismicLoading } = useSeismic(true);
@@ -680,7 +680,7 @@ export default function IntelPage() {
         onClose={() => setDeepDiveOpen(false)}
         viewCountry={viewCountry}
         resolvedCountry={viewCountry === "My Location" ? resolvedCountry : undefined}
-        resolvedIso3={viewCountry === "My Location" ? resolvedIso3 : undefined}
+        resolvedIso3={resolvedIso3}
       />
     </div>
   );

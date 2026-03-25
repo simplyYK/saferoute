@@ -1,17 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { nameToIso3 } from "@/lib/constants/country-codes";
 
 export const dynamic = "force-dynamic";
 
 const HDX_APP_ID = "c2VudGluZWwtY3Jpc2lzLWFwcDp5YXNoa2VkaWFhQGdtYWlsLmNvbQ==";
 const HDX_BASE = "https://hapi.humdata.org/api/v2";
-
-// Country name → ISO3 mapping
-const COUNTRY_ISO3: Record<string, string> = {
-  Ukraine: "UKR", Palestine: "PSE", Sudan: "SDN", Myanmar: "MMR",
-  Yemen: "YEM", Syria: "SYR", Lebanon: "LBN", Ethiopia: "ETH",
-  Somalia: "SOM", "Democratic Republic of Congo": "COD", Afghanistan: "AFG",
-  Iran: "IRN", Israel: "ISR", Iraq: "IRQ", Libya: "LBY", Haiti: "HTI", Mali: "MLI",
-};
 
 interface ConflictRecord {
   admin1_name: string;
@@ -30,7 +23,7 @@ const CACHE_TTL = 10 * 60 * 1000;
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const country = searchParams.get("country") || "Ukraine";
-  const iso3 = searchParams.get("iso3") || COUNTRY_ISO3[country] || "";
+  const iso3 = searchParams.get("iso3") || nameToIso3(country) || "";
 
   if (!iso3) {
     return NextResponse.json({ error: "Unknown country", country });

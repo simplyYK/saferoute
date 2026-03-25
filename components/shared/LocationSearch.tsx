@@ -6,6 +6,8 @@ export interface LocationResult {
   lat: number;
   lng: number;
   name: string;
+  /** Country name extracted from the place's secondary text, e.g. "France" */
+  country?: string;
 }
 
 interface Prediction {
@@ -77,7 +79,10 @@ export default function LocationSearch({
     setOpen(false);
     setSuggestions([]);
     if (p.lat !== undefined && p.lng !== undefined) {
-      onSelect({ lat: p.lat, lng: p.lng, name: p.structured_formatting?.main_text ?? p.description });
+      const secondary = p.structured_formatting?.secondary_text ?? p.description ?? "";
+      const parts = secondary.split(",");
+      const countryGuess = parts[parts.length - 1]?.trim() || undefined;
+      onSelect({ lat: p.lat, lng: p.lng, name: p.structured_formatting?.main_text ?? p.description, country: countryGuess });
     }
   };
 

@@ -136,21 +136,23 @@ function militaryPoint(f: Flight): PointRow {
   };
 }
 
+function satelliteColor(type: string): string {
+  if (type === "starlink") return "#3B82F6";  // blue-500
+  if (type === "military") return "#EF4444";  // red-500
+  return "#94A3B8";                            // slate-400
+}
+
 function satellitePoint(s: SatelliteTrack): PointRow {
   const altGlobe = Math.max(0.003, s.altitude / EARTH_KM);
-  const col = s.isStarlink
-    ? "#3B82F6"
-    : s.type === "military"
-      ? "#EF4444"
-      : "#94A3B8";
-  const typeLabel = s.isStarlink
+  const col = satelliteColor(s.type);
+  const typeLabel = s.type === "starlink"
     ? "Starlink — Internet coverage available"
     : `${s.type} · ${Math.round(s.altitude)} km`;
   return {
     latitude: s.lat,
     longitude: s.lng,
     alt: altGlobe,
-    rad: s.isStarlink ? 0.25 : 0.22,
+    rad: s.type === "starlink" ? 0.25 : 0.22,
     color: col,
     label: `${s.name}\n${typeLabel}`,
     kind: "satellite",
@@ -371,15 +373,10 @@ const IntelligenceGlobe = forwardRef<IntelligenceGlobeHandle, IntelligenceGlobeP
       globe.ringsData(rings);
 
       const pathRows: PathRow[] = layers.satellites
-        ? satellites.map((s) => {
-            const col =
-              s.type === "starlink"
-                ? "#3B82F6"
-                : s.type === "military"
-                  ? "#EF4444"
-                  : "#F8FAFC";
-            return { points: s.path, color: col };
-          })
+        ? satellites.map((s) => ({
+            points: s.path,
+            color: satelliteColor(s.type),
+          }))
         : [];
       globe.pathsData(pathRows);
     }, [

@@ -13,6 +13,7 @@ const CrisisMap = dynamic(() => import("@/components/map/CrisisMap"), { ssr: fal
 export default function RoutePage() {
   const visualMode = useAppStore((s) => s.visualMode);
   const selectedRoute = useMapStore((s) => s.selectedRoute);
+  const viewCountry = useMapStore((s) => s.viewCountry);
   const [navigating, setNavigating] = useState(false);
 
   useEffect(() => {
@@ -39,7 +40,7 @@ export default function RoutePage() {
         <div className="flex-1 relative">
           <div className="absolute inset-0" style={filterStyle}>
             <Suspense fallback={null}>
-              <CrisisMap />
+              <CrisisMap country={viewCountry} />
             </Suspense>
           </div>
           <NavigationMode route={selectedRoute} onEnd={() => setNavigating(false)} />
@@ -59,7 +60,7 @@ export default function RoutePage() {
               <div className="absolute inset-0 pointer-events-none z-[450]" style={{ background: "rgba(0, 255, 70, 0.12)" }} />
             )}
             <Suspense fallback={null}>
-              <CrisisMap />
+              <CrisisMap country={viewCountry} />
             </Suspense>
           </div>
         </div>

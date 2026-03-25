@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { FileText, X, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useMapStore } from "@/store/mapStore";
@@ -106,9 +107,9 @@ export default function SitrepLauncher() {
         SITREP
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
-          className="fixed inset-0 z-[2000] flex items-start justify-center bg-black/60 p-4 pt-20 overflow-y-auto"
+          className="fixed inset-0 z-[9999] flex items-start justify-center bg-black/60 p-4 pt-20 overflow-y-auto"
           role="dialog"
           aria-modal="true"
           aria-labelledby="sitrep-title"
@@ -146,7 +147,8 @@ export default function SitrepLauncher() {
               For coordination only · verify all intelligence against primary sources
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );

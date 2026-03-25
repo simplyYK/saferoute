@@ -125,10 +125,16 @@ function UserLocationMarker() {
   const map = useMap();
   const { latitude, longitude } = useGeolocation();
   const setUserLocation = useAppStore((s) => s.setUserLocation);
+  const hasFlownRef = useRef(false);
 
   useEffect(() => {
     if (latitude && longitude) {
-      map.flyTo([latitude, longitude], 13, { animate: true, duration: 1.5 });
+      // Only fly to user location on the very first GPS fix.
+      // Never re-center automatically — the user (or NavigationMode) controls the view.
+      if (!hasFlownRef.current) {
+        hasFlownRef.current = true;
+        map.flyTo([latitude, longitude], 13, { animate: true, duration: 1.5 });
+      }
       setUserLocation({ lat: latitude, lng: longitude });
     }
   }, [latitude, longitude, map, setUserLocation]);
@@ -142,8 +148,7 @@ function UserLocationMarker() {
       pathOptions={{ color: "#0EA5E9", fillColor: "#0EA5E9", fillOpacity: 1, weight: 3 }}
       interactive={false}
       bubblingMouseEvents={false}
-    >
-    </CircleMarker>
+    />
   );
 }
 
