@@ -61,8 +61,8 @@ export default function SOSButton() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4 pt-20">
-          <div className="bg-[#0d1424] rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-red-500/30">
+        <div className="fixed inset-0 z-[9999] flex items-start justify-center bg-black/70 p-4 pt-20 overflow-y-auto">
+          <div className="bg-[#0d1424] rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-red-500/30 max-h-[calc(100vh-6rem)]">
             {/* Header with close */}
             <div className="bg-red-600 px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">

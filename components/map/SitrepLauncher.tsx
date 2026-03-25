@@ -108,7 +108,7 @@ export default function SitrepLauncher() {
 
       {open && (
         <div
-          className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center bg-black/60 p-4 pt-20"
+          className="fixed inset-0 z-[2000] flex items-start justify-center bg-black/60 p-4 pt-20 overflow-y-auto"
           role="dialog"
           aria-modal="true"
           aria-labelledby="sitrep-title"

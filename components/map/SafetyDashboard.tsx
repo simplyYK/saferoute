@@ -15,7 +15,17 @@ export default function SafetyDashboard() {
     if (airspace?.isClosed) setShelterDismissed(false);
   }, [airspace?.isClosed]);
 
-  if (!gsi) return null;
+  if (!gsi) return (
+    <div className="absolute top-3 left-3 z-[500]">
+      <div className="flex items-center gap-2 rounded-xl border border-white/15 bg-[#0a0f1e]/90 backdrop-blur-md px-3 py-2 shadow-lg">
+        <div className="w-8 h-8 rounded-full bg-white/10 animate-pulse" />
+        <div>
+          <div className="h-2 w-12 bg-white/10 rounded animate-pulse mb-1" />
+          <div className="h-2.5 w-16 bg-white/10 rounded animate-pulse" />
+        </div>
+      </div>
+    </div>
+  );
 
   const score = gsi.score;
 

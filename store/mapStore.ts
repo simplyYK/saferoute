@@ -46,6 +46,7 @@ interface MapState {
   flyTarget: [number, number] | null;
   resources: MapResource[];
   refreshTick: number;
+  routePinDrop: { lat: number; lng: number } | null;
 
   setCenter: (center: [number, number]) => void;
   setZoom: (zoom: number) => void;
@@ -63,6 +64,7 @@ interface MapState {
   addResources: (resources: MapResource[]) => void;
   clearResources: () => void;
   triggerRefresh: () => void;
+  setRoutePinDrop: (pin: { lat: number; lng: number } | null) => void;
 }
 
 export const useMapStore = create<MapState>((set) => ({
@@ -116,4 +118,6 @@ export const useMapStore = create<MapState>((set) => ({
     }),
   clearResources: () => set({ resources: [] }),
   triggerRefresh: () => set((state) => ({ refreshTick: state.refreshTick + 1 })),
+  routePinDrop: null,
+  setRoutePinDrop: (pin) => set({ routePinDrop: pin }),
 }));

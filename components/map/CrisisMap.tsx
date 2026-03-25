@@ -94,10 +94,15 @@ function MapEvents() {
   const setCenter = useMapStore((s) => s.setCenter);
   const setZoom = useMapStore((s) => s.setZoom);
   const setBounds = useMapStore((s) => s.setBounds);
+  const setRoutePinDrop = useMapStore((s) => s.setRoutePinDrop);
   const map = useMap();
   const lastCenter = useRef<[number, number]>([0, 0]);
 
   useMapEvents({
+    click(e) {
+      // Dispatch pin drop for route planner (if it's listening)
+      setRoutePinDrop({ lat: e.latlng.lat, lng: e.latlng.lng });
+    },
     moveend() {
       const c = map.getCenter();
       // Only update store if center moved meaningfully (prevents infinite loop

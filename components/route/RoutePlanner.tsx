@@ -27,8 +27,31 @@ export default function RoutePlanner({ onStartNavigation }: RoutePlannerProps = 
   const [routes, setLocalRoutes] = useState<RouteData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [stepsOpen, setStepsOpen] = useState(false);
+  const [pickingFor, setPickingFor] = useState<"origin" | "destination" | null>(null);
+
+  const routePinDrop = useMapStore((s) => s.routePinDrop);
+  const setRoutePinDrop = useMapStore((s) => s.setRoutePinDrop);
 
   const autoCalcRef = useRef(false);
+
+  // Listen for map click pin drops
+  useEffect(() => {
+    if (!routePinDrop || !pickingFor) return;
+    const loc: LocationResult = {
+      lat: routePinDrop.lat,
+      lng: routePinDrop.lng,
+      name: `${routePinDrop.lat.toFixed(4)}, ${routePinDrop.lng.toFixed(4)}`,
+    };
+    if (pickingFor === "origin") {
+      setOrigin(loc);
+      flyTo([loc.lat, loc.lng]);
+    } else {
+      setDestination(loc);
+      flyTo([loc.lat, loc.lng]);
+    }
+    setPickingFor(null);
+    setRoutePinDrop(null);
+  }, [routePinDrop, pickingFor, flyTo, setRoutePinDrop]);
 
   // Pre-fill origin from URL params (e.g. from ActionGrid "Go Safely")
   useEffect(() => {
@@ -174,6 +197,13 @@ export default function RoutePlanner({ onStartNavigation }: RoutePlannerProps = 
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {/* Pin-drop hint */}
+        {pickingFor && (
+          <div className="bg-teal/10 border border-teal/30 rounded-xl px-3 py-2 text-xs text-teal font-medium text-center animate-pulse">
+            Tap anywhere on the map to set your {pickingFor === "origin" ? "starting point" : "destination"}
+          </div>
+        )}
+
         {/* Origin */}
         <div>
           <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1.5">From</label>
@@ -185,12 +215,14 @@ export default function RoutePlanner({ onStartNavigation }: RoutePlannerProps = 
                   <button onClick={() => setOrigin(null)} className="text-slate-500 hover:text-white shrink-0 transition-colors">✕</button>
                 </div>
               ) : (
-                <LocationSearch
-                  placeholder="Search origin..."
-                  onSelect={handleOriginSelect}
-                  className="min-h-[44px]"
-                  dark
-                />
+                <div onClick={() => setPickingFor("origin")}>
+                  <LocationSearch
+                    placeholder="Search or tap map..."
+                    onSelect={handleOriginSelect}
+                    className="min-h-[44px]"
+                    dark
+                  />
+                </div>
               )}
             </div>
             <button
@@ -212,12 +244,14 @@ export default function RoutePlanner({ onStartNavigation }: RoutePlannerProps = 
               <button onClick={() => setDestination(null)} className="text-slate-500 hover:text-white shrink-0 transition-colors">✕</button>
             </div>
           ) : (
+            <div onClick={() => setPickingFor("destination")}>
             <LocationSearch
-              placeholder="Search destination..."
+              placeholder="Search or tap map..."
               onSelect={handleDestinationSelect}
               className="min-h-[44px]"
               dark
             />
+            </div>
           )}
         </div>
 
