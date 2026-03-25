@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -50,15 +50,30 @@ function createDivIcon(emoji: string, bg: string, size = 32, extraClass = "") {
 }
 
 const RESOURCE_ICONS: Record<string, { emoji: string; color: string }> = {
-  hospital:     { emoji: "🏥", color: "#DC2626" },
-  clinic:       { emoji: "🩺", color: "#F97316" },
-  pharmacy:     { emoji: "💊", color: "#22C55E" },
-  shelter:      { emoji: "🏠", color: "#3B82F6" },
-  police:       { emoji: "🚔", color: "#1E40AF" },
-  fire_station: { emoji: "🚒", color: "#B91C1C" },
-  embassy:      { emoji: "🏛️", color: "#7C3AED" },
-  water_point:  { emoji: "💧", color: "#06B6D4" },
+  hospital:          { emoji: "🏥", color: "#DC2626" },
+  clinic:            { emoji: "🩺", color: "#F97316" },
+  doctors:           { emoji: "🩺", color: "#F97316" },
+  pharmacy:          { emoji: "💊", color: "#22C55E" },
+  shelter:           { emoji: "🛖", color: "#3B82F6" },
+  community_centre:  { emoji: "🏛", color: "#6366F1" },
+  place_of_worship:  { emoji: "⛪", color: "#8B5CF6" },
+  school:            { emoji: "🏫", color: "#6366F1" },
+  social_facility:   { emoji: "🏠", color: "#3B82F6" },
+  police:            { emoji: "🚔", color: "#1E40AF" },
+  fire_station:      { emoji: "🚒", color: "#B91C1C" },
+  embassy:           { emoji: "🏛️", color: "#7C3AED" },
+  water_point:       { emoji: "💧", color: "#06B6D4" },
+  drinking_water:    { emoji: "💧", color: "#06B6D4" },
 };
+
+/** Returns icon size scaled by zoom level. Smaller at low zoom, larger when zoomed in. */
+function iconSizeForZoom(zoom: number, base = 32): number {
+  if (zoom <= 8)  return Math.round(base * 0.5);   // 16px — very zoomed out
+  if (zoom <= 10) return Math.round(base * 0.6);   // 19px
+  if (zoom <= 12) return Math.round(base * 0.75);  // 24px
+  if (zoom <= 14) return base;                       // 32px — default
+  return Math.round(base * 1.15);                    // 37px — very zoomed in
+}
 
 function FlyToHandler() {
   const map = useMap();
@@ -130,6 +145,12 @@ function UserLocationMarker() {
 }
 
 function ConflictMarkers({ events, conflictIconClass }: { events: ConflictEvent[]; conflictIconClass: string }) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
+  useMapEvents({ zoomend() { setZoom(map.getZoom()); } });
+
+  const size = iconSizeForZoom(zoom, 28);
+
   const severityColors: Record<string, string> = {
     critical: "#DC2626",
     high: "#F97316",
@@ -157,7 +178,7 @@ function ConflictMarkers({ events, conflictIconClass }: { events: ConflictEvent[
     <>
       {events.map((e) => {
         const color = severityColors[e.severity] || "#6B7280";
-        const icon = createDivIcon("⚠️", color, 28, conflictIconClass);
+        const icon = createDivIcon("⚠️", color, size, conflictIconClass);
         const ago = timeAgo(e.event_date);
         return (
           <Marker
@@ -295,11 +316,20 @@ function ReportMarkers({ reports }: { reports: Report[] }) {
 }
 
 function ResourceMarkers({ resources }: { resources: MapResource[] }) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
+
+  useMapEvents({
+    zoomend() { setZoom(map.getZoom()); },
+  });
+
+  const size = iconSizeForZoom(zoom);
+
   return (
     <>
       {resources.map((r) => {
         const cfg = RESOURCE_ICONS[r.type] || { emoji: "📍", color: "#6B7280" };
-        const icon = createDivIcon(cfg.emoji, cfg.color, 32);
+        const icon = createDivIcon(cfg.emoji, cfg.color, size);
         return (
           <Marker key={r.id} position={[r.latitude, r.longitude]} icon={icon}>
             <Popup maxWidth={300}>
