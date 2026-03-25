@@ -2,7 +2,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type VisualMode = "standard" | "flir" | "night" | "crt";
+export type VisualMode = "standard" | "flir" | "night" | "crt" | "blackout";
 /** Globe page uses this alias (same values as map visual modes). */
 export type GlobeVisualMode = VisualMode;
 

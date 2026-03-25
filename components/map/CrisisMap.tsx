@@ -20,11 +20,13 @@ import { useAppStore } from "@/store/appStore";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useReports } from "@/hooks/useReports";
 import { useConflictData } from "@/hooks/useConflictData";
+import { useFirmsHotspots } from "@/hooks/useFirmsHotspots";
 import { MAP_CONFIG } from "@/lib/constants/map-config";
 import { REPORT_CATEGORIES } from "@/lib/constants/report-types";
 import { safetyScoreColor } from "@/lib/utils/safety-score";
 import type { Report } from "@/types/report";
 import type { ConflictEvent } from "@/types/conflict";
+import type { ThermalHotspot } from "@/lib/risk-intelligence";
 
 // Fix Leaflet icon in webpack/Next.js
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -170,6 +172,40 @@ function ReportMarkers({ reports }: { reports: Report[] }) {
   );
 }
 
+function ThermalLayer({ hotspots }: { hotspots: ThermalHotspot[] }) {
+  return (
+    <>
+      {hotspots.map((h, i) => {
+        const radius = Math.min(Math.max(h.frp / 5, 4), 18);
+        return (
+          <CircleMarker
+            key={`firms-${i}-${h.lat}-${h.lng}`}
+            center={[h.lat, h.lng]}
+            radius={radius}
+            pathOptions={{
+              color: "#DC2626",
+              fillColor: h.confidence === "high" ? "#FF4500" : "#DC2626",
+              fillOpacity: 0.55,
+              weight: 1,
+            }}
+          >
+            <Popup maxWidth={220}>
+              <div className="text-sm space-y-1">
+                <p className="font-bold text-red-600">Thermal Anomaly</p>
+                <p className="text-xs text-slate-500">{h.acq_date} {h.acq_time}</p>
+                <p className="text-xs">Brightness: {h.brightness.toFixed(0)} K</p>
+                <p className="text-xs">Fire Power: {h.frp.toFixed(1)} MW</p>
+                <p className="text-xs">Confidence: {h.confidence}</p>
+                <p className="text-[10px] text-slate-400">Source: NASA FIRMS VIIRS</p>
+              </div>
+            </Popup>
+          </CircleMarker>
+        );
+      })}
+    </>
+  );
+}
+
 function RouteLayer() {
   const { selectedRoute, routes } = useMapStore();
 
@@ -209,6 +245,8 @@ export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
   const visualMode = useAppStore((s) => s.visualMode);
   const { reports } = useReports();
   const { events } = useConflictData(country);
+  const showThermal = visualMode === "blackout" || visualMode === "flir";
+  const { hotspots } = useFirmsHotspots(showThermal);
 
   useEffect(() => {
     setViewCountry(country);
@@ -244,6 +282,8 @@ export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
         <ConflictMarkers events={events} conflictIconClass={conflictIconClass} />
       )}
       {activeLayers.reports && <ReportMarkers reports={reports} />}
+
+      {showThermal && hotspots.length > 0 && <ThermalLayer hotspots={hotspots} />}
 
       {(selectedRoute || routes.length > 0) && <RouteLayer />}
     </MapContainer>

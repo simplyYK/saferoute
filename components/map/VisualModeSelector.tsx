@@ -1,7 +1,7 @@
 "use client";
 
 import { useAppStore, type VisualMode } from "@/store/appStore";
-import { Sun, Flame, Moon, Tv } from "lucide-react";
+import { Sun, Flame, Moon, Tv, EyeOff } from "lucide-react";
 import { useState } from "react";
 
 const MODES: { id: VisualMode; label: string; icon: typeof Sun }[] = [
@@ -9,6 +9,7 @@ const MODES: { id: VisualMode; label: string; icon: typeof Sun }[] = [
   { id: "flir", label: "FLIR", icon: Flame },
   { id: "night", label: "NVG", icon: Moon },
   { id: "crt", label: "CRT", icon: Tv },
+  { id: "blackout", label: "Blackout", icon: EyeOff },
 ];
 
 export default function VisualModeSelector() {

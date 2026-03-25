@@ -10,6 +10,7 @@ import { useMapStore } from "@/store/mapStore";
 import { useAppStore } from "@/store/appStore";
 import VisualModeSelector from "@/components/map/VisualModeSelector";
 import SitrepLauncher from "@/components/map/SitrepLauncher";
+import SafetyDashboard from "@/components/map/SafetyDashboard";
 
 const CrisisMap = dynamic(() => import("@/components/map/CrisisMap"), {
   ssr: false,
@@ -83,7 +84,11 @@ export default function MapPage() {
 
   useEffect(() => {
     document.documentElement.classList.toggle("crt-mode", visualMode === "crt");
-    return () => document.documentElement.classList.remove("crt-mode");
+    document.documentElement.classList.toggle("blackout-mode", visualMode === "blackout");
+    return () => {
+      document.documentElement.classList.remove("crt-mode");
+      document.documentElement.classList.remove("blackout-mode");
+    };
   }, [visualMode]);
 
   const filterStyle: CSSProperties | undefined =
@@ -91,7 +96,9 @@ export default function MapPage() {
       ? { filter: "saturate(0%) brightness(1.5) contrast(2)" }
       : visualMode === "night"
         ? { filter: "saturate(0%) brightness(1.2) contrast(1.3)" }
-        : undefined;
+        : visualMode === "blackout"
+          ? { filter: "saturate(0%) brightness(0.3) contrast(3)" }
+          : undefined;
 
   return (
     <div
@@ -110,6 +117,16 @@ export default function MapPage() {
               className="absolute inset-0 pointer-events-none z-[450]"
               style={{
                 background: "radial-gradient(circle, rgba(255,100,0,0.3), transparent 70%)",
+              }}
+            />
+          )}
+          {visualMode === "blackout" && (
+            <div
+              className="absolute inset-0 pointer-events-none z-[450]"
+              style={{
+                background:
+                  "radial-gradient(ellipse 70% 50% at 50% 50%, rgba(220, 38, 38, 0.25), transparent 70%)",
+                mixBlendMode: "screen",
               }}
             />
           )}
@@ -138,6 +155,7 @@ export default function MapPage() {
             <MapContent />
           </Suspense>
         </div>
+        <SafetyDashboard />
         <VisualModeSelector />
         <LayerControls />
 
