@@ -96,13 +96,15 @@ function toTrack(e: TleEntry): SatelliteTrack | null {
     if (!g) return null;
     const path = buildPath(satrec, now, 46, 2);
     if (path.length < 2) return null;
+    const cleanName = e.name.replace(/\s+/g, " ").trim() || `NORAD ${noradId(e.line1)}`;
     return {
       id: noradId(e.line1),
-      name: e.name.replace(/\s+/g, " ").trim() || `NORAD ${noradId(e.line1)}`,
+      name: cleanName,
       lat: g.lat,
       lng: g.lng,
       altitude: g.altKm,
       type: e.type,
+      isStarlink: cleanName.toUpperCase().includes("STARLINK"),
       path,
     };
   } catch {

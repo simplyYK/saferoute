@@ -18,9 +18,15 @@ export function useSeismic(enabled: boolean) {
     setLoading(true);
     try {
       const res = await fetch("/api/seismic");
-      const data = (await res.json()) as unknown;
+      const data = (await res.json()) as { events?: SeismicEvent[] } | SeismicEvent[];
       if (!mounted.current) return;
-      setEvents(Array.isArray(data) ? (data as SeismicEvent[]) : []);
+      if (Array.isArray(data)) {
+        setEvents(data as SeismicEvent[]);
+      } else if (data && typeof data === "object" && "events" in data && Array.isArray(data.events)) {
+        setEvents(data.events);
+      } else {
+        setEvents([]);
+      }
     } catch {
       if (mounted.current) setEvents([]);
     } finally {

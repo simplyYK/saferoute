@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { AGENT_TOOLS } from "@/lib/agent-tools-schema";
 
 export const dynamic = "force-dynamic";
@@ -202,9 +202,10 @@ export async function POST(request: NextRequest) {
 
   const provider = getProvider();
   if (!provider) {
-    return new Response(JSON.stringify({ error: "AI service not configured" }), {
-      status: 503, headers: { "Content-Type": "application/json" },
-    });
+    return NextResponse.json(
+      { error: "ai_not_configured", message: "Add GROQ_API_KEY (free at groq.com), OPENAI_API_KEY, or GEMINI_API_KEY to environment variables" },
+      { status: 503 }
+    );
   }
 
   const body = await request.json() as {

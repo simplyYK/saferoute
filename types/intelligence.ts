@@ -34,5 +34,6 @@ export type SatelliteTrack = {
   lng: number;
   altitude: number;
   type: SatelliteType;
+  isStarlink: boolean;
   path: [number, number, number][];
 };

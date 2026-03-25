@@ -258,6 +258,35 @@ export const AGENT_TOOLS = [
       },
     },
   },
+  {
+    type: "function" as const,
+    function: {
+      name: "get_conflict_stats",
+      description: "Get aggregate conflict statistics for a country including monthly event counts, fatalities, and top affected regions from ACLED via HDX HAPI.",
+      parameters: {
+        type: "object",
+        properties: {
+          country: { type: "string", description: "Country name (e.g. 'Ukraine', 'Sudan', 'Myanmar')" },
+        },
+        required: ["country"],
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "get_weather",
+      description: "Get current weather conditions for a location including temperature, wind, humidity, and visibility.",
+      parameters: {
+        type: "object",
+        properties: {
+          lat: { type: "number", description: "Latitude" },
+          lng: { type: "number", description: "Longitude" },
+        },
+        required: ["lat", "lng"],
+      },
+    },
+  },
 ];
 
 export const TOOLS_DESCRIPTION = AGENT_TOOLS.map(

@@ -126,6 +126,16 @@ async function executeTool(tool: ToolCall): Promise<unknown> {
       return { action: "setVisualMode", mode };
     }
 
+    case "get_conflict_stats": {
+      const { country } = tool.args as { country: string };
+      return fetchInternal(`/api/conflict-stats?country=${encodeURIComponent(country)}`);
+    }
+
+    case "get_weather": {
+      const { lat, lng } = tool.args as { lat: number; lng: number };
+      return fetchInternal(`/api/weather?lat=${lat}&lng=${lng}`);
+    }
+
     default:
       return { error: `Unknown tool: ${tool.name}` };
   }

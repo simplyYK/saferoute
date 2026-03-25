@@ -4,7 +4,7 @@ import { isInConflictZone } from "@/lib/seismic-zones";
 
 export const dynamic = "force-dynamic";
 
-const USGS = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
+const USGS = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/2.5_day.geojson";
 const CACHE_MS = 5 * 60 * 1000;
 let cache: { at: number; data: SeismicEvent[] } | null = null;
 
@@ -38,7 +38,7 @@ export async function GET() {
       if (typeof lat !== "number" || typeof lng !== "number") continue;
       const props = f.properties ?? {};
       const mag = props.mag;
-      if (typeof mag !== "number" || mag < 2.0) continue;
+      if (typeof mag !== "number" || mag < 1.0) continue;
 
       const timeMs = props.time;
       const time =

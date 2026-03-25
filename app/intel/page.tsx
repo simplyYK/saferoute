@@ -8,6 +8,7 @@ import BottomNav from "@/components/navigation/BottomNav";
 import { useReports } from "@/hooks/useReports";
 import { useFlights } from "@/hooks/useFlights";
 import { useSeismic } from "@/hooks/useSeismic";
+import { useSatellites } from "@/hooks/useSatellites";
 import { useConflictData } from "@/hooks/useConflictData";
 import { useResolvedCountry } from "@/hooks/useResolvedCountry";
 import { useWeather } from "@/hooks/useWeather";
@@ -22,18 +23,10 @@ import {
 import ReactMarkdown from "react-markdown";
 import { Citation } from "@/components/shared/Citation";
 import CountryDeepDive from "@/components/intel/CountryDeepDive";
+import type { ConflictPointFeature } from "@/components/globe/IntelligenceGlobe";
 
-// The 3D globe view is rendered by the full /globe page in an iframe to avoid prop complexity
-const GlobeFrame = dynamic(
-  () => Promise.resolve(function GlobeFrameInner() {
-    return (
-      <iframe
-        src="/globe?embed=true"
-        className="absolute inset-0 w-full h-full border-0"
-        title="3D Intelligence Globe"
-      />
-    );
-  }),
+const IntelligenceGlobe = dynamic(
+  () => import("@/components/globe/IntelligenceGlobe"),
   { ssr: false }
 );
 
@@ -231,11 +224,29 @@ export default function IntelPage() {
   const { stats: conflictStats, loading: statsLoading } = useConflictStats(effectiveCountry);
   const { commercial, military, loading: flightsLoading } = useFlights(true);
   const { events: seismic, loading: seismicLoading } = useSeismic(true);
+  const { satellites } = useSatellites(layers.satellites);
   const { weather, loading: weatherLoading } = useWeather();
 
   const [view, setView] = useState<"dashboard" | "globe">("dashboard");
   const [sitrepOpen, setSitrepOpen] = useState(false);
   const [deepDiveOpen, setDeepDiveOpen] = useState(false);
+
+  // Build conflict features for the globe view
+  const conflictFeatures = useMemo((): ConflictPointFeature[] => {
+    return conflicts.map((c) => ({
+      type: "Feature" as const,
+      geometry: {
+        type: "Point" as const,
+        coordinates: [c.longitude, c.latitude] as [number, number],
+      },
+      properties: {
+        event_type: c.event_type,
+        severity: c.severity,
+        location: c.location,
+        fatalities: c.fatalities,
+      },
+    }));
+  }, [conflicts]);
 
   const milAlert = military.length > 0;
   const seismicAlert = seismic.filter((e) => e.magnitude >= 4.0).length > 0;
@@ -383,18 +394,47 @@ export default function IntelPage() {
                   citation="OpenSky"
                   loading={flightsLoading}
                 />
-                <StatCard
-                  icon={Activity}
-                  label="Seismic Events"
-                  value={seismic.length}
-                  sub={`${seismic.filter((e) => e.magnitude >= 4.0).length} significant (M4+)`}
-                  color="text-yellow-400"
-                  alert={seismicAlert}
-                  trend={seismicAlert ? "↑ Alert" : undefined}
-                  delay={0.12}
-                  citation="USGS"
-                  loading={seismicLoading}
-                />
+                <div className="relative rounded-2xl border p-4 overflow-hidden border-white/8 bg-white/4">
+                  <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="p-1.5 rounded-lg bg-white/5">
+                      <Activity className="w-4 h-4 text-yellow-400" />
+                    </div>
+                    {seismicAlert && (
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-red-400 bg-red-500/15 px-1.5 py-0.5 rounded-full animate-pulse">ALERT</span>
+                    )}
+                  </div>
+                  {seismicLoading ? (
+                    <div className="space-y-2 mt-1">
+                      <div className="h-7 w-16 bg-white/5 rounded-lg animate-pulse" />
+                      <div className="h-3 w-24 bg-white/5 rounded animate-pulse" />
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-2xl font-bold text-yellow-400">{seismic.length}</p>
+                      <p className="text-xs text-white font-medium mt-0.5">Seismic Events</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">Last 24h · All magnitudes</p>
+                      {/* Magnitude breakdown legend */}
+                      <div className="mt-2 space-y-0.5">
+                        {[
+                          { range: "M6+", color: "bg-red-700", label: "Major", count: seismic.filter((e) => e.magnitude >= 6).length },
+                          { range: "M5-6", color: "bg-red-500", label: "Strong", count: seismic.filter((e) => e.magnitude >= 5 && e.magnitude < 6).length },
+                          { range: "M4-5", color: "bg-orange-500", label: "Moderate", count: seismic.filter((e) => e.magnitude >= 4 && e.magnitude < 5).length },
+                          { range: "M3-4", color: "bg-yellow-500", label: "Light", count: seismic.filter((e) => e.magnitude >= 3 && e.magnitude < 4).length },
+                          { range: "M2-3", color: "bg-blue-400", label: "Minor", count: seismic.filter((e) => e.magnitude >= 2 && e.magnitude < 3).length },
+                        ].filter((b) => b.count > 0).map((b) => (
+                          <div key={b.range} className="flex items-center gap-1.5 text-[9px]">
+                            <span className={`w-2 h-2 rounded-full ${b.color} shrink-0`} />
+                            <span className="text-slate-400 w-8">{b.range}</span>
+                            <span className="text-slate-500">{b.label}</span>
+                            <span className="text-slate-300 ml-auto font-medium">{b.count}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                  <Citation source="USGS" />
+                </div>
                 <StatCard
                   icon={Radio}
                   label="Field Reports"
@@ -541,7 +581,7 @@ export default function IntelPage() {
               </motion.button>
             </motion.div>
           ) : (
-            /* Globe view */
+            /* Globe view — rendered directly to share globe layer state */
             <motion.div
               key="globe"
               initial={{ opacity: 0 }}
@@ -549,15 +589,15 @@ export default function IntelPage() {
               exit={{ opacity: 0 }}
               className="flex-1 relative"
             >
-              {/* Back to dashboard — the SITREP button is in the header bar above */}
-              <button
-                onClick={() => setView("dashboard")}
-                className="absolute top-3 left-3 z-[600] flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0d1424]/90 border border-white/10 text-xs font-medium text-slate-300 hover:text-white backdrop-blur-md transition-all"
-              >
-                <LayoutDashboard className="w-3.5 h-3.5" />
-                Dashboard
-              </button>
-              <GlobeFrame />
+              <IntelligenceGlobe
+                layers={layers}
+                conflictFeatures={conflictFeatures}
+                reports={reports}
+                commercialFlights={commercial}
+                militaryFlights={military}
+                earthquakes={seismic}
+                satellites={satellites}
+              />
             </motion.div>
           )}
         </AnimatePresence>

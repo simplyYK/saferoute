@@ -1,15 +1,18 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import {
   Send, Loader2, Bot, Trash2, AlertTriangle,
   MapPin, Car, Route, Wifi, WifiOff, Wind, Eye,
-  ChevronUp, ChevronDown,
+  ChevronUp, ChevronDown, Mic,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useAppStore } from "@/store/appStore";
 import { useMapStore } from "@/store/mapStore";
 import type { ChatMessage } from "@/types/map";
+
+const VoiceMode = dynamic(() => import("@/components/chat/VoiceMode"), { ssr: false });
 
 interface AgentAction {
   action: string;
@@ -143,6 +146,7 @@ export default function ChatInterface({ className = "", initialPrompt }: { class
   const [loading, setLoading] = useState(false);
   const [seismicCount, setSeismicCount] = useState(0);
   const [actionLog, setActionLog] = useState<string[]>([]);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -220,8 +224,11 @@ export default function ChatInterface({ className = "", initialPrompt }: { class
         });
 
         if (!res.ok) {
-          const err = await res.json().catch(() => ({})) as { error?: string };
-          throw new Error(err.error ?? `HTTP ${res.status}`);
+          const err = await res.json().catch(() => ({})) as { error?: string; message?: string };
+          if (err.error === "ai_not_configured") {
+            throw new Error("AI assistant requires an API key. Add GROQ_API_KEY to your Vercel environment variables for free AI (groq.com).");
+          }
+          throw new Error(err.message ?? err.error ?? `HTTP ${res.status}`);
         }
 
         const reader = res.body?.getReader();
@@ -383,10 +390,18 @@ export default function ChatInterface({ className = "", initialPrompt }: { class
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && void sendMessage(input)}
-          placeholder={hasLocation ? "Ask anything — search, route, report..." : "Ask anything… (enable GPS for best results)"}
+          placeholder={hasLocation ? "Ask Sentinel AI..." : "Ask Sentinel AI… (enable GPS for best results)"}
           disabled={loading}
           className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-teal/50 disabled:opacity-50 min-h-[48px] transition-colors"
         />
+        <button
+          type="button"
+          onClick={() => setVoiceOpen(true)}
+          className="bg-white/5 border border-white/10 hover:border-teal/40 hover:bg-teal/10 text-slate-400 hover:text-teal p-3 rounded-xl min-w-[48px] min-h-[48px] flex items-center justify-center transition-colors"
+          aria-label="Voice mode"
+        >
+          <Mic className="w-4 h-4" />
+        </button>
         <button
           type="button"
           onClick={() => void sendMessage(input)}
@@ -397,6 +412,7 @@ export default function ChatInterface({ className = "", initialPrompt }: { class
           <Send className="w-4 h-4" />
         </button>
       </div>
+      <VoiceMode open={voiceOpen} onClose={() => setVoiceOpen(false)} />
     </div>
   );
 }
