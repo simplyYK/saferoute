@@ -78,12 +78,20 @@ export default function NewsPage() {
 
   const criticalCount = articles.filter((a) => a.severity === "critical").length;
 
-  const timeAgo = (s: string) => {
-    const diff = Date.now() - parsePubDate(s);
-    const h = Math.floor(diff / 3600000);
-    if (h < 1) return `${Math.floor(diff / 60000)}m ago`;
+  const timeAgo = (s: string | undefined) => {
+    if (!s) return "—";
+    const ts = parsePubDate(s);
+    if (ts <= 0) return "—";
+    const diff = Date.now() - ts;
+    if (diff < 0 || !Number.isFinite(diff)) return "—";
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return "just now";
+    if (mins < 60) return `${mins}m ago`;
+    const h = Math.floor(mins / 60);
     if (h < 24) return `${h}h ago`;
-    return `${Math.floor(h / 24)}d ago`;
+    const d = Math.floor(h / 24);
+    if (d > 365) return "—";
+    return `${d}d ago`;
   };
 
   return (

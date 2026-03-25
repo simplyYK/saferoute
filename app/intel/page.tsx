@@ -37,7 +37,7 @@ const GlobeFrame = dynamic(
 
 // ─── Stat Card ───────────────────────────────────────────────────
 function StatCard({
-  icon: Icon, label, value, sub, color, alert, delay, trend, citation
+  icon: Icon, label, value, sub, color, alert, delay, trend, citation, loading
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -48,6 +48,7 @@ function StatCard({
   delay?: number;
   trend?: string;
   citation?: string;
+  loading?: boolean;
 }) {
   return (
     <motion.div
@@ -71,14 +72,23 @@ function StatCard({
           </span>
         )}
       </div>
-      <div className="flex items-baseline gap-2">
-        <p className={`text-2xl font-bold ${color}`}>{value}</p>
-        {trend && (
-          <span className="text-[10px] font-semibold text-slate-400">{trend}</span>
-        )}
-      </div>
-      <p className="text-xs text-white font-medium mt-0.5">{label}</p>
-      {sub && <p className="text-[10px] text-slate-500 mt-0.5">{sub}</p>}
+      {loading ? (
+        <div className="space-y-2 mt-1">
+          <div className="h-7 w-16 bg-white/5 rounded-lg animate-pulse" />
+          <div className="h-3 w-24 bg-white/5 rounded animate-pulse" />
+        </div>
+      ) : (
+        <>
+          <div className="flex items-baseline gap-2">
+            <p className={`text-2xl font-bold ${color}`}>{value}</p>
+            {trend && (
+              <span className="text-[10px] font-semibold text-slate-400">{trend}</span>
+            )}
+          </div>
+          <p className="text-xs text-white font-medium mt-0.5">{label}</p>
+          {sub && <p className="text-[10px] text-slate-500 mt-0.5">{sub}</p>}
+        </>
+      )}
       {citation && <Citation source={citation} />}
     </motion.div>
   );
@@ -213,10 +223,10 @@ export default function IntelPage() {
   const toggleGlobeLayer = useMapStore((s) => s.toggleGlobeLayer);
 
   const { reports } = useReports();
-  const { events: conflicts } = useConflictData(viewCountry);
-  const { commercial, military } = useFlights(true);
-  const { events: seismic } = useSeismic(true);
-  const { weather } = useWeather();
+  const { events: conflicts, loading: conflictsLoading } = useConflictData(viewCountry);
+  const { commercial, military, loading: flightsLoading } = useFlights(true);
+  const { events: seismic, loading: seismicLoading } = useSeismic(true);
+  const { weather, loading: weatherLoading } = useWeather();
 
   const [view, setView] = useState<"dashboard" | "globe">("dashboard");
   const [sitrepOpen, setSitrepOpen] = useState(false);
@@ -354,6 +364,7 @@ export default function IntelPage() {
                   trend={conflicts.length > 0 ? `${conflicts.filter((e) => e.severity === "critical").length} critical` : undefined}
                   delay={0}
                   citation="ACLED"
+                  loading={conflictsLoading}
                 />
                 <StatCard
                   icon={Plane}
@@ -365,6 +376,7 @@ export default function IntelPage() {
                   trend={milAlert ? "↑ Active" : "— Clear"}
                   delay={0.06}
                   citation="OpenSky"
+                  loading={flightsLoading}
                 />
                 <StatCard
                   icon={Activity}
@@ -376,6 +388,7 @@ export default function IntelPage() {
                   trend={seismicAlert ? "↑ Alert" : undefined}
                   delay={0.12}
                   citation="USGS"
+                  loading={seismicLoading}
                 />
                 <StatCard
                   icon={Radio}
@@ -391,7 +404,8 @@ export default function IntelPage() {
                   icon={CloudSun}
                   label="Weather"
                   value={weather ? `${Math.round(weather.temperature)}°` : "—"}
-                  sub={weather ? `${weather.condition} · Wind ${weather.windSpeed} km/h` : "Loading..."}
+                  sub={weather ? `${weather.condition} · Wind ${weather.windSpeed} km/h` : "Fetching..."}
+                  loading={weatherLoading}
                   color="text-sky-400"
                   trend={weather ? `Vis ${weather.visibility >= 1000 ? `${(weather.visibility / 1000).toFixed(1)}km` : `${weather.visibility}m`}` : undefined}
                   delay={0.24}

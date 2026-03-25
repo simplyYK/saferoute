@@ -40,7 +40,12 @@ const IntelligenceGlobe = dynamic(
 
 export default function GlobePage() {
   // embed=true hides chrome when rendered inside the Intel page iframe
-  const isEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("embed") === "true";
+  // Use useState to avoid hydration mismatch — server always renders false,
+  // then client updates on mount.
+  const [isEmbed, setIsEmbed] = useState(false);
+  useEffect(() => {
+    setIsEmbed(new URLSearchParams(window.location.search).get("embed") === "true");
+  }, []);
 
   const { reports } = useReports();
   const layers = useMapStore((s) => s.globeLayers);
