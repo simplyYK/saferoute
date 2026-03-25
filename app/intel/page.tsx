@@ -11,6 +11,7 @@ import { useSeismic } from "@/hooks/useSeismic";
 import { useConflictData } from "@/hooks/useConflictData";
 import { useResolvedCountry } from "@/hooks/useResolvedCountry";
 import { useWeather } from "@/hooks/useWeather";
+import { useConflictStats } from "@/hooks/useConflictStats";
 import { useAppStore } from "@/store/appStore";
 import { useMapStore } from "@/store/mapStore";
 import {
@@ -227,6 +228,7 @@ export default function IntelPage() {
 
   const { reports } = useReports();
   const { events: conflicts, loading: conflictsLoading } = useConflictData(effectiveCountry);
+  const { stats: conflictStats, loading: statsLoading } = useConflictStats(effectiveCountry);
   const { commercial, military, loading: flightsLoading } = useFlights(true);
   const { events: seismic, loading: seismicLoading } = useSeismic(true);
   const { weather, loading: weatherLoading } = useWeather();
@@ -360,14 +362,14 @@ export default function IntelPage() {
                 <StatCard
                   icon={AlertTriangle}
                   label="Conflict Events"
-                  value={conflicts.length}
-                  sub={`${effectiveCountry} · Last 30d`}
+                  value={conflictStats?.summary.latestCompleteMonth?.events ?? conflictStats?.summary.latestMonth?.events ?? conflicts.length}
+                  sub={conflictStats?.summary.latestCompleteMonth ? `${effectiveCountry} · ${conflictStats.summary.latestCompleteMonth.month}` : `${effectiveCountry} · Last 30d`}
                   color="text-red-400"
-                  alert={conflicts.filter((e) => e.severity === "critical").length > 0}
-                  trend={conflicts.length > 0 ? `${conflicts.filter((e) => e.severity === "critical").length} critical` : undefined}
+                  alert={(conflictStats?.summary.latestCompleteMonth?.fatalities ?? 0) > 0 || conflicts.filter((e) => e.severity === "critical").length > 0}
+                  trend={conflictStats?.summary.trend ? `${conflictStats.summary.trend.direction === "increasing" ? "↑" : conflictStats.summary.trend.direction === "decreasing" ? "↓" : "→"} ${Math.abs(conflictStats.summary.trend.percentChange)}% vs prev month` : conflicts.length > 0 ? `${conflicts.filter((e) => e.severity === "critical").length} critical` : undefined}
                   delay={0}
-                  citation="ACLED"
-                  loading={conflictsLoading}
+                  citation="ACLED via HDX"
+                  loading={conflictsLoading && statsLoading}
                 />
                 <StatCard
                   icon={Plane}
@@ -416,15 +418,54 @@ export default function IntelPage() {
                 />
                 <StatCard
                   icon={TrendingUp}
-                  label="Critical Reports"
-                  value={reports.filter((r) => r.severity === "critical" || r.severity === "high").length}
-                  sub="High-severity only"
+                  label={conflictStats ? "Fatalities" : "Critical Reports"}
+                  value={conflictStats?.summary.latestCompleteMonth?.fatalities ?? reports.filter((r) => r.severity === "critical" || r.severity === "high").length}
+                  sub={conflictStats?.summary.latestCompleteMonth ? `${conflictStats.summary.latestCompleteMonth.month} · ${effectiveCountry}` : "High-severity only"}
                   color="text-red-400"
-                  alert={reports.filter((r) => r.severity === "critical").length > 0}
+                  alert={(conflictStats?.summary.latestCompleteMonth?.fatalities ?? 0) > 50}
                   delay={0.3}
-                  citation="Community"
+                  citation={conflictStats ? "ACLED via HDX" : "Community"}
+                  loading={statsLoading}
                 />
               </div>
+
+              {/* Real ACLED Conflict Data — Top Affected Regions */}
+              {conflictStats && conflictStats.topRegions.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.35 }}
+                  className="bg-white/3 border border-white/6 rounded-2xl overflow-hidden"
+                >
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-white/6">
+                    <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                    <p className="text-xs font-bold text-slate-300 uppercase tracking-wider">Most Affected Regions</p>
+                    <span className="text-[9px] text-slate-600 ml-auto">Source: ACLED via HDX</span>
+                  </div>
+                  <div className="px-4 py-2 space-y-1.5">
+                    {conflictStats.topRegions.slice(0, 6).map((r, i) => {
+                      const maxEvents = conflictStats.topRegions[0]?.events || 1;
+                      const pct = Math.min((r.events / maxEvents) * 100, 100);
+                      return (
+                        <div key={r.name} className="space-y-0.5">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-slate-300 font-medium truncate max-w-[180px]">{r.name}</span>
+                            <span className="text-slate-400">{r.events.toLocaleString()} events · {r.fatalities.toLocaleString()} killed</span>
+                          </div>
+                          <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{ width: `${pct}%` }}
+                              transition={{ duration: 0.6, delay: 0.4 + i * 0.05 }}
+                              className="h-full rounded-full bg-red-500/60"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
 
               {/* Intelligence feed */}
               {feedItems.length === 0 && (
