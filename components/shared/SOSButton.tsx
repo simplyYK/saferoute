@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Phone, Copy, Check, X } from "lucide-react";
+import { Phone, Copy, Check, X, ArrowLeft, Share2 } from "lucide-react";
 import { useMapStore } from "@/store/mapStore";
 import { REGIONS, type RegionConfig } from "@/lib/constants/regions";
 
@@ -8,6 +8,7 @@ export default function SOSButton() {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [loading, setLoading] = useState(false);
   const viewCountry = useMapStore((s) => s.viewCountry);
 
   const region: RegionConfig | undefined = REGIONS.find(
@@ -22,6 +23,7 @@ export default function SOSButton() {
 
   const handleSOS = async () => {
     setOpen(true);
+    setLoading(true);
     try {
       const pos = await new Promise<GeolocationPosition>((res, rej) =>
         navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 })
@@ -29,18 +31,20 @@ export default function SOSButton() {
       setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
     } catch {
       setCoords(null);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const copyMessage = async () => {
-    const msg = coords
-      ? `EMERGENCY: I need help!\nLocation: https://maps.google.com/?q=${coords.lat},${coords.lng}\nRegion: ${viewCountry}\nTime: ${new Date().toISOString()}`
-      : `EMERGENCY: I need help! Region: ${viewCountry} (Location unavailable)`;
+  const emergencyMessage = coords
+    ? `EMERGENCY: I need help!\nLocation: https://maps.google.com/?q=${coords.lat},${coords.lng}\nRegion: ${viewCountry}\nTime: ${new Date().toISOString()}`
+    : `EMERGENCY: I need help! Region: ${viewCountry} (Location unavailable)`;
 
+  const shareLocation = async () => {
     if (navigator.share) {
-      await navigator.share({ title: "Emergency SOS", text: msg }).catch(() => {});
+      await navigator.share({ title: "Emergency SOS", text: emergencyMessage }).catch(() => {});
     } else {
-      await navigator.clipboard.writeText(msg);
+      await navigator.clipboard.writeText(emergencyMessage);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
@@ -57,45 +61,83 @@ export default function SOSButton() {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center bg-black/60">
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-red-600">Emergency SOS</h2>
-              <button onClick={() => setOpen(false)} className="p-1">
-                <X className="w-5 h-5 text-slate-400" />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+            {/* Header with close */}
+            <div className="bg-red-600 px-5 py-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setOpen(false)}
+                  className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                  aria-label="Close SOS"
+                >
+                  <ArrowLeft className="w-4 h-4 text-white" />
+                </button>
+                <h2 className="text-lg font-bold text-white">Emergency SOS</h2>
+              </div>
+              <button
+                onClick={() => setOpen(false)}
+                className="p-1.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4 text-white" />
               </button>
             </div>
 
-            {coords && (
-              <div className="bg-slate-50 rounded-lg p-3 mb-4 text-sm">
-                <p className="font-medium text-slate-600">Your Location:</p>
-                <p className="font-mono text-slate-900">{coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</p>
+            <div className="p-5 space-y-4">
+              {/* Location */}
+              <div className="bg-slate-50 rounded-xl p-3">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Your Location</p>
+                {loading ? (
+                  <p className="text-sm text-slate-400 animate-pulse">Getting GPS...</p>
+                ) : coords ? (
+                  <p className="font-mono text-sm text-slate-900">{coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</p>
+                ) : (
+                  <p className="text-sm text-amber-600">Location unavailable — enable GPS</p>
+                )}
               </div>
-            )}
 
-            <div className="space-y-2 mb-4">
-              <p className="text-sm font-semibold text-slate-700">
-                Emergency Numbers {region ? `(${region.name})` : ""}:
-              </p>
-              {emergencyNumbers.map(({ label, number }) => (
-                <a
-                  key={number}
-                  href={`tel:${number}`}
-                  className="flex items-center gap-2 text-sm text-blue-600 hover:underline"
-                >
-                  <Phone className="w-4 h-4" />
-                  {number} — {label}
-                </a>
-              ))}
+              {/* Emergency numbers */}
+              <div>
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">
+                  Emergency Numbers {region ? `— ${region.name}` : ""}
+                </p>
+                <div className="space-y-1.5">
+                  {emergencyNumbers.map(({ label, number }) => (
+                    <a
+                      key={number}
+                      href={`tel:${number}`}
+                      className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                        <Phone className="w-4 h-4 text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-slate-900">{number}</p>
+                        <p className="text-xs text-slate-500">{label}</p>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              </div>
+
+              {/* Share button */}
+              <button
+                onClick={shareLocation}
+                className="w-full bg-red-600 hover:bg-red-700 text-white py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition-colors min-h-[52px]"
+              >
+                {copied ? <Check className="w-5 h-5" /> : typeof navigator !== "undefined" && "share" in navigator ? <Share2 className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                {copied ? "Copied to clipboard!" : "Share Emergency Location"}
+              </button>
+
+              {/* Back to safety */}
+              <button
+                onClick={() => setOpen(false)}
+                className="w-full text-slate-500 hover:text-slate-700 text-sm py-2 transition-colors"
+              >
+                Close and return to app
+              </button>
             </div>
-
-            <button
-              onClick={copyMessage}
-              className="w-full bg-red-600 text-white py-3 rounded-xl font-semibold flex items-center justify-center gap-2"
-            >
-              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              {copied ? "Copied!" : "Share Emergency Location"}
-            </button>
           </div>
         </div>
       )}

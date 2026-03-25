@@ -95,5 +95,11 @@ export function useFlights(enabled: boolean) {
     return () => window.clearInterval(id);
   }, [enabled, load]);
 
+  useEffect(() => {
+    const handler = () => { void load(); };
+    window.addEventListener("saferoute:refresh", handler);
+    return () => window.removeEventListener("saferoute:refresh", handler);
+  }, [load]);
+
   return { commercial, military, loading, lastUpdated, refresh: load };
 }

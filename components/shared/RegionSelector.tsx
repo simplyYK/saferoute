@@ -77,10 +77,10 @@ export default function RegionSelector() {
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 text-xs text-slate-300 hover:text-white border border-white/20 hover:border-white/40 rounded-lg px-2.5 py-1.5 transition-colors bg-white/5"
+        className="flex items-center gap-1.5 text-xs text-white hover:text-teal border border-teal/40 hover:border-teal rounded-lg px-2.5 py-1.5 transition-colors bg-teal/10 min-h-[36px]"
       >
-        <Globe className="w-3.5 h-3.5 text-teal shrink-0" />
-        <span className="hidden sm:inline max-w-[80px] truncate">
+        <Globe className="w-4 h-4 text-teal shrink-0" />
+        <span className="max-w-[100px] truncate font-medium">
           {currentRegion?.name ?? viewCountry}
         </span>
         <ChevronDown className="w-3 h-3 shrink-0" />

@@ -10,6 +10,13 @@ export interface BBox {
   east: number;
 }
 
+export interface ElevationStats {
+  min: number;
+  max: number;
+  gain: number;
+  loss: number;
+}
+
 export interface RouteData {
   id: string;
   distance: number;
@@ -27,6 +34,7 @@ export interface RouteData {
     name: string;
   }>;
   safetyScore: number;
+  elevationStats?: ElevationStats;
 }
 
 export interface ChatMessage {

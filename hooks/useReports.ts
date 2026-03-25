@@ -31,6 +31,12 @@ export function useReports(lat?: number, lng?: number) {
   }, []);
 
   useEffect(() => {
+    const handler = () => { void fetchReports(); };
+    window.addEventListener("saferoute:refresh", handler);
+    return () => window.removeEventListener("saferoute:refresh", handler);
+  }, [fetchReports]);
+
+  useEffect(() => {
     fetchReports();
     if (!isSupabaseConfigured) return;
 

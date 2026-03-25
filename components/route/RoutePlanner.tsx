@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Navigation, Loader2, Route as RouteIcon, Bot, AlertTriangle, ChevronDown, ChevronUp, Footprints, Car, Bike } from "lucide-react";
 import { useMapStore } from "@/store/mapStore";
@@ -8,7 +8,7 @@ import { useConflictData } from "@/hooks/useConflictData";
 import { calculateSafetyScore, safetyScoreColor, safetyScoreLabel } from "@/lib/utils/safety-score";
 import { formatDistance, formatDuration } from "@/lib/utils/geo";
 import LocationSearch, { type LocationResult } from "@/components/shared/LocationSearch";
-import type { RouteData } from "@/types/map";
+import type { RouteData, ElevationStats } from "@/types/map";
 
 export default function RoutePlanner() {
   const router = useRouter();
@@ -23,6 +23,34 @@ export default function RoutePlanner() {
   const [routes, setLocalRoutes] = useState<RouteData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [stepsOpen, setStepsOpen] = useState(false);
+
+  const autoCalcRef = useRef(false);
+
+  // Pick up agent-initiated route from sessionStorage
+  useEffect(() => {
+    const stored = sessionStorage.getItem("agentRoute");
+    if (stored) {
+      sessionStorage.removeItem("agentRoute");
+      try {
+        const data = JSON.parse(stored) as { origin: LocationResult; destination: LocationResult; profile?: string };
+        setOrigin(data.origin);
+        setDestination(data.destination);
+        if (data.profile === "car" || data.profile === "bike" || data.profile === "foot") {
+          setProfile(data.profile);
+        }
+        autoCalcRef.current = true;
+      } catch { /* ignore */ }
+    }
+  }, []);
+
+  // Auto-calculate when agent pre-filled both origin and destination
+  useEffect(() => {
+    if (autoCalcRef.current && origin && destination && !loading) {
+      autoCalcRef.current = false;
+      calculate();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [origin, destination]);
 
   const getMyLocation = () => {
     navigator.geolocation?.getCurrentPosition((pos) => {
@@ -68,6 +96,30 @@ export default function RoutePlanner() {
       setLocalRoutes(scored);
       setRoutes(scored);
       if (scored.length > 0) setSelectedRoute(scored[0]);
+
+      // Fetch elevation for each route in background
+      for (const route of scored) {
+        const coords = route.geometry.coordinates;
+        const sampleRate = Math.max(1, Math.floor(coords.length / 30));
+        const sampled = coords.filter((_, i) => i % sampleRate === 0);
+        // coords are [lng, lat], elevation API needs lat,lng
+        const path = sampled.map(([lng, lat]) => [lat, lng] as [number, number]);
+        fetch("/api/google-elevation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ path, samples: Math.min(path.length, 50) }),
+        })
+          .then((r) => r.json())
+          .then((d: { stats?: ElevationStats }) => {
+            if (d.stats) {
+              const withElev = { ...route, elevationStats: d.stats };
+              setLocalRoutes((prev) => prev.map((r) => (r.id === route.id ? withElev : r)));
+              const currentRoutes = useMapStore.getState().routes;
+              setRoutes(currentRoutes.map((r) => (r.id === route.id ? withElev : r)));
+            }
+          })
+          .catch(() => {});
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to calculate route");
     } finally {
@@ -228,6 +280,11 @@ export default function RoutePlanner() {
                   </div>
                   <p className="text-sm text-slate-600">
                     {formatDistance(route.distanceKm)} · {formatDuration(route.durationMinutes)}
+                    {route.elevationStats && (
+                      <span className="text-slate-400 ml-1">
+                        · ↑{route.elevationStats.gain}m ↓{route.elevationStats.loss}m
+                      </span>
+                    )}
                   </p>
                 </button>
               );

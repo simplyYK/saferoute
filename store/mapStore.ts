@@ -12,6 +12,21 @@ interface MapLayers {
   dangerZones: boolean;
 }
 
+export interface MapResource {
+  id: string;
+  type: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  phone?: string | null;
+  website?: string | null;
+  address?: string | null;
+  operating_hours?: string | null;
+  rating?: number | null;
+  status?: string;
+  source?: string;
+}
+
 interface MapState {
   center: [number, number];
   zoom: number;
@@ -23,6 +38,8 @@ interface MapState {
   routes: RouteData[];
   isLocating: boolean;
   flyTarget: [number, number] | null;
+  resources: MapResource[];
+  refreshTick: number;
 
   setCenter: (center: [number, number]) => void;
   setZoom: (zoom: number) => void;
@@ -36,6 +53,10 @@ interface MapState {
   setIsLocating: (locating: boolean) => void;
   flyTo: (target: [number, number]) => void;
   clearFlyTarget: () => void;
+  setResources: (resources: MapResource[]) => void;
+  addResources: (resources: MapResource[]) => void;
+  clearResources: () => void;
+  triggerRefresh: () => void;
 }
 
 export const useMapStore = create<MapState>((set) => ({
@@ -53,6 +74,8 @@ export const useMapStore = create<MapState>((set) => ({
   selectedRoute: null,
   routes: [],
   isLocating: false,
+  resources: [],
+  refreshTick: 0,
 
   setCenter: (center) => set({ center }),
   setZoom: (zoom) => set({ zoom }),
@@ -73,4 +96,13 @@ export const useMapStore = create<MapState>((set) => ({
   flyTarget: null,
   flyTo: (target) => set({ flyTarget: target }),
   clearFlyTarget: () => set({ flyTarget: null }),
+  setResources: (resources) => set({ resources }),
+  addResources: (newResources) =>
+    set((state) => {
+      const existingIds = new Set(state.resources.map((r) => r.id));
+      const unique = newResources.filter((r) => !existingIds.has(r.id));
+      return { resources: [...state.resources, ...unique] };
+    }),
+  clearResources: () => set({ resources: [] }),
+  triggerRefresh: () => set((state) => ({ refreshTick: state.refreshTick + 1 })),
 }));

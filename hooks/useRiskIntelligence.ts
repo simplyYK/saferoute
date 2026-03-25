@@ -40,7 +40,7 @@ export function useRiskIntelligence(): RiskIntelligenceState {
 
     try {
       // Fetch all three data sources in parallel
-      const [shelterRes, firmsRes, newsRes, flightsRes] = await Promise.allSettled([
+      const [shelterRes, firmsRes, newsRes, flightsRes, airQualityRes] = await Promise.allSettled([
         // 1. Shelter density from Overpass
         fetch(
           `/api/overpass?type=shelter&south=${oLat - radius}&north=${oLat + radius}&west=${oLng - radius}&east=${oLng + radius}`
@@ -62,6 +62,12 @@ export function useRiskIntelligence(): RiskIntelligenceState {
         fetch(`/api/opensky`).then((r) => r.json()) as Promise<
           { lat: number; lng: number; onGround: boolean }[]
         >,
+
+        // 5. Air quality from Google
+        fetch(`/api/google-air-quality?lat=${oLat}&lng=${oLng}`).then((r) => r.json()) as Promise<{
+          aqi?: number | null;
+          category?: string;
+        }>,
       ]);
 
       const shelterCount =
@@ -83,10 +89,15 @@ export function useRiskIntelligence(): RiskIntelligenceState {
             : []
           : [];
 
+      const airQuality =
+        airQualityRes.status === "fulfilled"
+          ? (airQualityRes.value as { aqi?: number | null; category?: string })
+          : { aqi: null, category: "Unknown" };
+
       setHotspots(thermalHotspots);
 
       // Compute GSI
-      const result = calculateGSI(shelterCount, lat, lng, thermalHotspots, articles);
+      const result = calculateGSI(shelterCount, lat, lng, thermalHotspots, articles, airQuality.aqi ?? null, airQuality.category ?? "Unknown");
       setGsi(result);
 
       // Check airspace closure (Dead-Drop)
@@ -105,6 +116,12 @@ export function useRiskIntelligence(): RiskIntelligenceState {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
+  }, [compute]);
+
+  useEffect(() => {
+    const handler = () => { void compute(); };
+    window.addEventListener("saferoute:refresh", handler);
+    return () => window.removeEventListener("saferoute:refresh", handler);
   }, [compute]);
 
   return { gsi, airspace, hotspots, loading };

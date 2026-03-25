@@ -1,5 +1,6 @@
 "use client";
-import { Shield } from "lucide-react";
+import { useState } from "react";
+import { Shield, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { type ReactNode } from "react";
@@ -13,6 +14,30 @@ interface TopBarProps {
   extraActions?: ReactNode;
 }
 
+function RefreshButton() {
+  const [spinning, setSpinning] = useState(false);
+  const triggerRefresh = useMapStore((s) => s.triggerRefresh);
+
+  const handleRefresh = () => {
+    setSpinning(true);
+    triggerRefresh();
+    // Force re-fetch by invalidating caches — refresh the page's data hooks
+    window.dispatchEvent(new CustomEvent("saferoute:refresh"));
+    setTimeout(() => setSpinning(false), 1500);
+  };
+
+  return (
+    <button
+      onClick={handleRefresh}
+      className="p-2 text-slate-400 hover:text-teal transition-colors shrink-0"
+      title="Refresh all data sources"
+      aria-label="Refresh data"
+    >
+      <RefreshCw className={`w-4 h-4 ${spinning ? "animate-spin" : ""}`} />
+    </button>
+  );
+}
+
 export default function TopBar({ extraActions }: TopBarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -20,7 +45,6 @@ export default function TopBar({ extraActions }: TopBarProps) {
 
   const handleSelect = (result: LocationResult) => {
     flyTo([result.lat, result.lng]);
-    // If not on map/route page, navigate to map
     if (!pathname.startsWith("/map") && !pathname.startsWith("/route") && !pathname.startsWith("/globe")) {
       router.push("/map");
     }
@@ -40,6 +64,7 @@ export default function TopBar({ extraActions }: TopBarProps) {
       />
 
       {extraActions}
+      <RefreshButton />
       <RegionSelector />
       <LanguageSwitcher compact />
       <SOSButton />

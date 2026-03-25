@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Shield, ChevronDown, ChevronUp, Flame, Building2, Newspaper, Plane, X, AlertTriangle } from "lucide-react";
+import { Shield, ChevronDown, ChevronUp, Flame, Building2, Newspaper, Plane, X, AlertTriangle, Wind } from "lucide-react";
 import { useRiskIntelligence } from "@/hooks/useRiskIntelligence";
 
 export default function SafetyDashboard() {
@@ -181,6 +181,29 @@ export default function SafetyDashboard() {
                     : "NEUTRAL"}
                 </span>
               </div>
+              {gsi.airQuality != null && (
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-slate-300">
+                    <Wind className="w-3.5 h-3.5 text-purple-400" />
+                    Air Quality
+                  </span>
+                  <span
+                    className="font-medium"
+                    style={{
+                      color:
+                        gsi.airQuality > 150
+                          ? "#DC2626"
+                          : gsi.airQuality > 100
+                          ? "#F97316"
+                          : gsi.airQuality > 50
+                          ? "#F59E0B"
+                          : "#22C55E",
+                    }}
+                  >
+                    AQI {gsi.airQuality} · {gsi.airQualityCategory}
+                  </span>
+                </div>
+              )}
               {airspace && (
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-1.5 text-slate-300">
@@ -202,7 +225,7 @@ export default function SafetyDashboard() {
 
             {/* Formula note */}
             <p className="text-[9px] text-slate-500 border-t border-white/10 pt-2">
-              GSI = (Shelter × 0.4) − (Thermal × 0.5) − (Sentiment × 0.1)
+              GSI = (Shelter × 0.35) − (Thermal × 0.4) − (News × 0.1) − (AQI × 0.15)
             </p>
           </div>
         )}

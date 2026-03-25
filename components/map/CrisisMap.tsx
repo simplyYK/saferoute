@@ -11,11 +11,12 @@ import {
   CircleMarker,
   Popup,
   Polyline,
+  Circle,
 } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-import { useMapStore } from "@/store/mapStore";
+import { useMapStore, type MapResource } from "@/store/mapStore";
 import { useAppStore } from "@/store/appStore";
 import { useGeolocation } from "@/hooks/useGeolocation";
 import { useReports } from "@/hooks/useReports";
@@ -46,6 +47,17 @@ function createDivIcon(emoji: string, bg: string, size = 32, extraClass = "") {
     popupAnchor: [0, -(size / 2)],
   });
 }
+
+const RESOURCE_ICONS: Record<string, { emoji: string; color: string }> = {
+  hospital:     { emoji: "🏥", color: "#DC2626" },
+  clinic:       { emoji: "🩺", color: "#F97316" },
+  pharmacy:     { emoji: "💊", color: "#22C55E" },
+  shelter:      { emoji: "🏠", color: "#3B82F6" },
+  police:       { emoji: "🚔", color: "#1E40AF" },
+  fire_station: { emoji: "🚒", color: "#B91C1C" },
+  embassy:      { emoji: "🏛️", color: "#7C3AED" },
+  water_point:  { emoji: "💧", color: "#06B6D4" },
+};
 
 function FlyToHandler() {
   const map = useMap();
@@ -143,6 +155,35 @@ function ConflictMarkers({ events, conflictIconClass }: { events: ConflictEvent[
   );
 }
 
+// Danger zones: radius circles around critical/high severity conflict events
+function DangerZones({ events }: { events: ConflictEvent[] }) {
+  const dangerEvents = events.filter((e) => e.severity === "critical" || e.severity === "high");
+
+  const radiusMap: Record<string, number> = {
+    critical: 2000, // 2km radius
+    high: 1000,     // 1km radius
+  };
+
+  return (
+    <>
+      {dangerEvents.map((e) => (
+        <Circle
+          key={`dz-${e.id}`}
+          center={[e.latitude, e.longitude]}
+          radius={radiusMap[e.severity] ?? 1000}
+          pathOptions={{
+            color: e.severity === "critical" ? "#DC2626" : "#F97316",
+            fillColor: e.severity === "critical" ? "#DC2626" : "#F97316",
+            fillOpacity: 0.08,
+            weight: 1,
+            dashArray: "5 5",
+          }}
+        />
+      ))}
+    </>
+  );
+}
+
 function ReportMarkers({ reports }: { reports: Report[] }) {
   return (
     <>
@@ -163,6 +204,50 @@ function ReportMarkers({ reports }: { reports: Report[] }) {
                 <p className="text-xs text-slate-400">
                   ✓ {r.confirmations} confirmations
                 </p>
+              </div>
+            </Popup>
+          </Marker>
+        );
+      })}
+    </>
+  );
+}
+
+function ResourceMarkers({ resources }: { resources: MapResource[] }) {
+  return (
+    <>
+      {resources.map((r) => {
+        const cfg = RESOURCE_ICONS[r.type] || { emoji: "📍", color: "#6B7280" };
+        const icon = createDivIcon(cfg.emoji, cfg.color, 32);
+        return (
+          <Marker key={r.id} position={[r.latitude, r.longitude]} icon={icon}>
+            <Popup maxWidth={300}>
+              <div className="text-sm space-y-1">
+                <p className="font-bold">{r.name}</p>
+                <p className="text-xs text-slate-500 capitalize">{r.type.replace("_", " ")}</p>
+                {r.address && <p className="text-xs text-slate-600">{r.address}</p>}
+                {r.phone && (
+                  <a href={`tel:${r.phone}`} className="text-xs text-blue-600 block">
+                    📞 {r.phone}
+                  </a>
+                )}
+                {r.website && (
+                  <a href={r.website} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 block">
+                    🌐 Website
+                  </a>
+                )}
+                {r.operating_hours && (
+                  <p className="text-xs text-slate-500">{r.operating_hours}</p>
+                )}
+                {r.source && (
+                  <p className="text-[10px] text-slate-400">Source: {r.source}</p>
+                )}
+                <a
+                  href={`/route?destLat=${r.latitude}&destLng=${r.longitude}&destName=${encodeURIComponent(r.name)}`}
+                  className="inline-flex items-center gap-1 text-xs text-teal font-medium mt-1"
+                >
+                  🧭 Navigate here
+                </a>
               </div>
             </Popup>
           </Marker>
@@ -241,12 +326,12 @@ interface CrisisMapProps {
 }
 
 export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
-  const { center, zoom, activeLayers, selectedRoute, routes, setViewCountry } = useMapStore();
+  const { center, zoom, activeLayers, selectedRoute, routes, setViewCountry, resources } = useMapStore();
   const visualMode = useAppStore((s) => s.visualMode);
   const { reports } = useReports();
   const { events } = useConflictData(country);
-  const showThermal = visualMode === "blackout" || visualMode === "flir";
-  const { hotspots } = useFirmsHotspots(showThermal);
+  // Always fetch thermal data — display is controlled by dangerZones layer toggle
+  const { hotspots } = useFirmsHotspots(true);
 
   useEffect(() => {
     setViewCountry(country);
@@ -283,7 +368,20 @@ export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
       )}
       {activeLayers.reports && <ReportMarkers reports={reports} />}
 
-      {showThermal && hotspots.length > 0 && <ThermalLayer hotspots={hotspots} />}
+      {/* Resources: from agent searches or resource page */}
+      {activeLayers.resources && resources.length > 0 && (
+        <ResourceMarkers resources={resources} />
+      )}
+
+      {/* Danger zones: buffer circles around critical conflict events */}
+      {activeLayers.dangerZones && events.length > 0 && (
+        <DangerZones events={events} />
+      )}
+
+      {/* Thermal hotspots: shown when dangerZones layer is on */}
+      {activeLayers.dangerZones && hotspots.length > 0 && (
+        <ThermalLayer hotspots={hotspots} />
+      )}
 
       {(selectedRoute || routes.length > 0) && <RouteLayer />}
     </MapContainer>

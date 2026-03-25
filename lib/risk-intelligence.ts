@@ -23,6 +23,8 @@ export interface GSIResult {
   shelterDensity: number; // raw count within radius
   thermalProximity: number; // 0..1 — closer = worse
   newsTone: number; // 0..1 — higher = more negative
+  airQuality: number | null; // AQI value (null if unavailable)
+  airQualityCategory: string; // e.g. "Good", "Moderate", etc.
   updatedAt: string;
 }
 
@@ -95,21 +97,32 @@ function newsToneScore(
 // Main calculator
 // ---------------------------------------------------------------------------
 
+/** Air quality score (0..1): 1 = hazardous, 0 = good */
+function airQualityScore(aqi: number | null): number {
+  if (aqi == null) return 0;
+  // US EPA AQI: 0-50 Good, 51-100 Moderate, 101-150 Unhealthy Sensitive, 151-200 Unhealthy, 201-300 Very Unhealthy, 301+ Hazardous
+  return Math.min(aqi / 300, 1);
+}
+
 export function calculateGSI(
   shelterCount: number,
   userLat: number,
   userLng: number,
   hotspots: ThermalHotspot[],
-  newsArticles: { severity: string }[]
+  newsArticles: { severity: string }[],
+  aqi: number | null = null,
+  aqiCategory: string = "Unknown"
 ): GSIResult {
   const S = shelterScore(shelterCount);
   const T = thermalScore(userLat, userLng, hotspots);
   const V = newsToneScore(newsArticles);
+  const A = airQualityScore(aqi);
 
-  // GSI formula: positive contribution from shelters, negative from threats/news
-  const rawGsi = S * 0.4 - T * 0.5 - V * 0.1;
-  // Map from [-0.6, 0.4] range to [0, 100]
-  const score = Math.max(0, Math.min(100, Math.round((rawGsi + 0.6) * 100)));
+  // GSI formula: positive from shelters, negative from threats/news/air
+  // Adjusted weights to accommodate air quality: shelter 0.35, thermal 0.4, news 0.1, air 0.15
+  const rawGsi = S * 0.35 - T * 0.4 - V * 0.1 - A * 0.15;
+  // Map from [-0.65, 0.35] range to [0, 100]
+  const score = Math.max(0, Math.min(100, Math.round((rawGsi + 0.65) * 100)));
 
   return {
     score,
@@ -118,6 +131,8 @@ export function calculateGSI(
     shelterDensity: shelterCount,
     thermalProximity: Math.round(T * 100) / 100,
     newsTone: Math.round(V * 100) / 100,
+    airQuality: aqi,
+    airQualityCategory: aqiCategory,
     updatedAt: new Date().toISOString(),
   };
 }
