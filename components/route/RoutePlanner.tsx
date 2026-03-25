@@ -31,6 +31,8 @@ export default function RoutePlanner({ onStartNavigation }: RoutePlannerProps = 
 
   const routePinDrop = useMapStore((s) => s.routePinDrop);
   const setRoutePinDrop = useMapStore((s) => s.setRoutePinDrop);
+  const setRouteOriginPin = useMapStore((s) => s.setRouteOriginPin);
+  const setRouteDestinationPin = useMapStore((s) => s.setRouteDestinationPin);
 
   const autoCalcRef = useRef(false);
 
@@ -44,14 +46,16 @@ export default function RoutePlanner({ onStartNavigation }: RoutePlannerProps = 
     };
     if (pickingFor === "origin") {
       setOrigin(loc);
+      setRouteOriginPin({ lat: loc.lat, lng: loc.lng });
       flyTo([loc.lat, loc.lng]);
     } else {
       setDestination(loc);
+      setRouteDestinationPin({ lat: loc.lat, lng: loc.lng });
       flyTo([loc.lat, loc.lng]);
     }
     setPickingFor(null);
     setRoutePinDrop(null);
-  }, [routePinDrop, pickingFor, flyTo, setRoutePinDrop]);
+  }, [routePinDrop, pickingFor, flyTo, setRoutePinDrop, setRouteOriginPin, setRouteDestinationPin]);
 
   // Pre-fill origin from URL params (e.g. from ActionGrid "Go Safely")
   useEffect(() => {
@@ -104,17 +108,20 @@ export default function RoutePlanner({ onStartNavigation }: RoutePlannerProps = 
         name: "My Location",
       };
       setOrigin(loc);
+      setRouteOriginPin({ lat: loc.lat, lng: loc.lng });
       flyTo([loc.lat, loc.lng]);
     });
   };
 
   const handleOriginSelect = (r: LocationResult) => {
     setOrigin(r);
+    setRouteOriginPin({ lat: r.lat, lng: r.lng });
     flyTo([r.lat, r.lng]);
   };
 
   const handleDestinationSelect = (r: LocationResult) => {
     setDestination(r);
+    setRouteDestinationPin({ lat: r.lat, lng: r.lng });
     flyTo([r.lat, r.lng]);
   };
 
@@ -136,6 +143,58 @@ export default function RoutePlanner({ onStartNavigation }: RoutePlannerProps = 
         safetyScore: calculateSafetyScore(r.geometry.coordinates, events, reports),
       }));
       scored.sort((a, b) => b.safetyScore - a.safetyScore);
+
+      // Smart avoidance: if best route is dangerous, try routing around the worst threat
+      if (scored.length > 0 && scored[0]!.safetyScore < 50 && events.length > 0) {
+        try {
+          // Find the most dangerous conflict event near the route
+          const routeCoords = scored[0]!.geometry.coordinates;
+          const sampleRate = Math.max(1, Math.floor(routeCoords.length / 30));
+          const sampled = routeCoords.filter((_, i) => i % sampleRate === 0);
+
+          let worstEvent: { lat: number; lng: number } | null = null;
+          let worstDist = Infinity;
+          for (const ev of events.filter((e) => e.severity === "critical" || e.severity === "high")) {
+            for (const [lng, lat] of sampled) {
+              const d = Math.hypot(lat - ev.latitude, lng - ev.longitude);
+              if (d < 0.05 && d < worstDist) { // within ~5km
+                worstDist = d;
+                worstEvent = { lat: ev.latitude, lng: ev.longitude };
+              }
+            }
+          }
+
+          if (worstEvent) {
+            // Create a waypoint that detours ~3km perpendicular to the danger zone
+            const midLat = (origin.lat + destination.lat) / 2;
+            const midLng = (origin.lng + destination.lng) / 2;
+            // Perpendicular offset away from the danger zone
+            const offsetLat = worstEvent.lat > midLat ? -0.03 : 0.03;
+            const offsetLng = worstEvent.lng > midLng ? -0.03 : 0.03;
+            const wpLat = worstEvent.lat + offsetLat;
+            const wpLng = worstEvent.lng + offsetLng;
+
+            const avoidRes = await fetch(
+              `/api/osrm?startLat=${origin.lat}&startLng=${origin.lng}&endLat=${destination.lat}&endLng=${destination.lng}&profile=${profile}&alternatives=false&via=${wpLat},${wpLng}`
+            );
+            if (avoidRes.ok) {
+              const avoidData = await avoidRes.json() as { routes?: RouteData[] };
+              const avoidRoutes = (avoidData.routes ?? []).map((r) => ({
+                ...r,
+                id: `avoid-${r.id}`,
+                safetyScore: calculateSafetyScore(r.geometry.coordinates, events, reports),
+              }));
+              // Only add if the avoidance route is actually safer
+              for (const ar of avoidRoutes) {
+                if (ar.safetyScore > scored[0]!.safetyScore) {
+                  scored.unshift(ar); // Put safer route first
+                }
+              }
+              scored.sort((a, b) => b.safetyScore - a.safetyScore);
+            }
+          }
+        } catch { /* avoidance is best-effort */ }
+      }
 
       setLocalRoutes(scored);
       setRoutes(scored);
@@ -212,7 +271,7 @@ export default function RoutePlanner({ onStartNavigation }: RoutePlannerProps = 
               {origin ? (
                 <div className="flex items-center gap-2 border border-teal/60 rounded-xl px-3 py-2 min-h-[44px] bg-teal/8">
                   <span className="text-sm text-white truncate flex-1">{origin.name}</span>
-                  <button onClick={() => setOrigin(null)} className="text-slate-500 hover:text-white shrink-0 transition-colors">✕</button>
+                  <button onClick={() => { setOrigin(null); setRouteOriginPin(null); }} className="text-slate-500 hover:text-white shrink-0 transition-colors">✕</button>
                 </div>
               ) : (
                 <div onClick={() => setPickingFor("origin")}>
@@ -241,7 +300,7 @@ export default function RoutePlanner({ onStartNavigation }: RoutePlannerProps = 
           {destination ? (
             <div className="flex items-center gap-2 border border-teal/60 rounded-xl px-3 py-2 min-h-[44px] bg-teal/8">
               <span className="text-sm text-white truncate flex-1">{destination.name}</span>
-              <button onClick={() => setDestination(null)} className="text-slate-500 hover:text-white shrink-0 transition-colors">✕</button>
+              <button onClick={() => { setDestination(null); setRouteDestinationPin(null); }} className="text-slate-500 hover:text-white shrink-0 transition-colors">✕</button>
             </div>
           ) : (
             <div onClick={() => setPickingFor("destination")}>

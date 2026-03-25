@@ -134,9 +134,43 @@ export async function GET(request: NextRequest) {
   const endLng = searchParams.get("endLng");
   const profile = searchParams.get("profile") || "foot";
   const alternatives = searchParams.get("alternatives") || "true";
+  const via = searchParams.get("via"); // optional "lat,lng" waypoint for avoidance routing
 
   if (!startLat || !startLng || !endLat || !endLng) {
     return NextResponse.json({ error: "Missing parameters: startLat, startLng, endLat, endLng" }, { status: 400 });
+  }
+
+  // If via waypoint provided, skip Google (no waypoint support) and use OSRM directly
+  if (via) {
+    try {
+      const [viaLat, viaLng] = via.split(",");
+      const osrmProfile = OSRM_PROFILE[profile] || "foot";
+      const coords = `${startLng},${startLat};${viaLng},${viaLat};${endLng},${endLat}`;
+      const url = `https://router.project-osrm.org/route/v1/${osrmProfile}/${coords}?overview=full&geometries=geojson&steps=true&alternatives=false`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const json = await res.json();
+        if (json.code === "Ok" && json.routes?.length) {
+          const routes = json.routes.map((route: { distance: number; duration: number; geometry: { type: string; coordinates: [number, number][] }; legs: Array<{ steps: Array<{ maneuver: { type: string; modifier?: string }; name: string; distance: number; duration: number }> }> }, i: number) => ({
+            id: `avoid-route-${i}`,
+            distance: route.distance,
+            distanceKm: Math.round((route.distance / 1000) * 10) / 10,
+            duration: route.duration,
+            durationMinutes: Math.round(route.duration / 60),
+            geometry: route.geometry,
+            steps: (route.legs?.flatMap((l) => l.steps) || []).map((step) => ({
+              instruction: `${step.maneuver.type}${step.maneuver.modifier ? " " + step.maneuver.modifier : ""} on ${step.name || "unnamed road"}`,
+              distance: step.distance,
+              duration: step.duration,
+              name: step.name,
+            })),
+            safetyScore: 0,
+            source: "osrm-avoidance",
+          }));
+          return NextResponse.json({ routes, count: routes.length });
+        }
+      }
+    } catch { /* fall through to normal routing */ }
   }
 
   // Try Google Routes first, fall back to OSRM

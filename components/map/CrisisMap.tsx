@@ -140,11 +140,9 @@ function UserLocationMarker() {
       center={[latitude, longitude]}
       radius={8}
       pathOptions={{ color: "#0EA5E9", fillColor: "#0EA5E9", fillOpacity: 1, weight: 3 }}
+      interactive={false}
+      bubblingMouseEvents={false}
     >
-      <Popup>
-        <div className="text-sm font-medium">📍 Your Location</div>
-        <div className="text-xs text-slate-500">{latitude.toFixed(4)}, {longitude.toFixed(4)}</div>
-      </Popup>
     </CircleMarker>
   );
 }
@@ -513,6 +511,20 @@ export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
       )}
 
       {(selectedRoute || routes.length > 0) && <RouteLayer />}
+      <RoutePins />
     </MapContainer>
+  );
+}
+
+function RoutePins() {
+  const originPin = useMapStore((s) => s.routeOriginPin);
+  const destinationPin = useMapStore((s) => s.routeDestinationPin);
+  const originIcon = createDivIcon("📍", "#22C55E", 36);
+  const destIcon = createDivIcon("🚩", "#EF4444", 36);
+  return (
+    <>
+      {originPin && <Marker position={[originPin.lat, originPin.lng]} icon={originIcon} />}
+      {destinationPin && <Marker position={[destinationPin.lat, destinationPin.lng]} icon={destIcon} />}
+    </>
   );
 }
