@@ -4,7 +4,8 @@ import { Suspense, useState, useEffect, type CSSProperties } from "react";
 import { useSearchParams } from "next/navigation";
 import TopBar from "@/components/navigation/TopBar";
 import BottomNav from "@/components/navigation/BottomNav";
-import { Layers, Eye, EyeOff } from "lucide-react";
+import { Layers, Eye, EyeOff, Route, Bot } from "lucide-react";
+import Link from "next/link";
 import { useMapStore } from "@/store/mapStore";
 import { useAppStore } from "@/store/appStore";
 import VisualModeSelector from "@/components/map/VisualModeSelector";
@@ -139,6 +140,24 @@ export default function MapPage() {
         </div>
         <VisualModeSelector />
         <LayerControls />
+
+        {/* Cross-tab quick actions */}
+        <div className="absolute bottom-20 left-3 z-[500] flex flex-col gap-2">
+          <Link
+            href="/route"
+            className="flex items-center gap-1.5 bg-teal text-white text-xs font-semibold px-3 py-2 rounded-full shadow-lg hover:bg-sky-500 transition-colors"
+          >
+            <Route className="w-3.5 h-3.5" />
+            Plan Route
+          </Link>
+          <Link
+            href="/assistant"
+            className="flex items-center gap-1.5 bg-navy text-white text-xs font-semibold px-3 py-2 rounded-full shadow-lg border border-white/20 hover:bg-white/10 transition-colors"
+          >
+            <Bot className="w-3.5 h-3.5 text-teal" />
+            Ask AI
+          </Link>
+        </div>
       </div>
       <BottomNav />
     </div>

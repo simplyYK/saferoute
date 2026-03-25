@@ -45,6 +45,21 @@ function createDivIcon(emoji: string, bg: string, size = 32, extraClass = "") {
   });
 }
 
+function FlyToHandler() {
+  const map = useMap();
+  const flyTarget = useMapStore((s) => s.flyTarget);
+  const clearFlyTarget = useMapStore((s) => s.clearFlyTarget);
+
+  useEffect(() => {
+    if (flyTarget) {
+      map.flyTo(flyTarget, 14, { animate: true, duration: 1.2 });
+      clearFlyTarget();
+    }
+  }, [flyTarget, map, clearFlyTarget]);
+
+  return null;
+}
+
 function MapEvents() {
   const { setCenter, setZoom, setBounds } = useMapStore();
   const map = useMap();
@@ -222,6 +237,7 @@ export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
       />
       <ZoomControl position="topright" />
       <MapEvents />
+      <FlyToHandler />
       <UserLocationMarker />
 
       {activeLayers.conflictEvents && (

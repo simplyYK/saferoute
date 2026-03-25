@@ -22,6 +22,7 @@ interface MapState {
   selectedRoute: RouteData | null;
   routes: RouteData[];
   isLocating: boolean;
+  flyTarget: [number, number] | null;
 
   setCenter: (center: [number, number]) => void;
   setZoom: (zoom: number) => void;
@@ -33,6 +34,8 @@ interface MapState {
   setSelectedRoute: (route: RouteData | null) => void;
   setRoutes: (routes: RouteData[]) => void;
   setIsLocating: (locating: boolean) => void;
+  flyTo: (target: [number, number]) => void;
+  clearFlyTarget: () => void;
 }
 
 export const useMapStore = create<MapState>((set) => ({
@@ -67,4 +70,7 @@ export const useMapStore = create<MapState>((set) => ({
   setSelectedRoute: (route) => set({ selectedRoute: route }),
   setRoutes: (routes) => set({ routes }),
   setIsLocating: (locating) => set({ isLocating: locating }),
+  flyTarget: null,
+  flyTo: (target) => set({ flyTarget: target }),
+  clearFlyTarget: () => set({ flyTarget: null }),
 }));

@@ -1,21 +1,28 @@
 "use client";
-import { Shield, Search } from "lucide-react";
+import { Shield } from "lucide-react";
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
+import { type ReactNode } from "react";
 import SOSButton from "@/components/shared/SOSButton";
 import LanguageSwitcher from "@/components/shared/LanguageSwitcher";
-import { useState, type ReactNode } from "react";
+import LocationSearch, { type LocationResult } from "@/components/shared/LocationSearch";
+import { useMapStore } from "@/store/mapStore";
 
 interface TopBarProps {
-  onSearch?: (query: string) => void;
   extraActions?: ReactNode;
 }
 
-export default function TopBar({ onSearch, extraActions }: TopBarProps) {
-  const [query, setQuery] = useState("");
+export default function TopBar({ extraActions }: TopBarProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const flyTo = useMapStore((s) => s.flyTo);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSearch?.(query);
+  const handleSelect = (result: LocationResult) => {
+    flyTo([result.lat, result.lng]);
+    // If not on map/route page, navigate to map
+    if (!pathname.startsWith("/map") && !pathname.startsWith("/route") && !pathname.startsWith("/globe")) {
+      router.push("/map");
+    }
   };
 
   return (
@@ -25,16 +32,11 @@ export default function TopBar({ onSearch, extraActions }: TopBarProps) {
         <span className="font-bold text-white text-sm hidden sm:block">SafeRoute</span>
       </Link>
 
-      <form onSubmit={handleSearch} className="flex-1 flex items-center gap-2 bg-white/10 rounded-lg px-3 py-1.5">
-        <Search className="w-4 h-4 text-slate-400 shrink-0" />
-        <input
-          type="text"
-          placeholder="Search location..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="bg-transparent text-white placeholder-slate-400 text-sm flex-1 outline-none min-w-0"
-        />
-      </form>
+      <LocationSearch
+        placeholder="Search any location..."
+        onSelect={handleSelect}
+        dark
+      />
 
       {extraActions}
       <LanguageSwitcher compact />
