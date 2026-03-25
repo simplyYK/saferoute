@@ -76,3 +76,30 @@ export function safetyScoreLabel(score: number): string {
   if (score >= 40) return "Risky";
   return "Dangerous";
 }
+
+export function countReportsAlongRoute(
+  coordinates: [number, number][],
+  reports: Report[],
+  corridorKm = 0.5
+): { count: number; criticalCount: number } {
+  if (coordinates.length === 0 || reports.length === 0) return { count: 0, criticalCount: 0 };
+
+  const sampleRate = Math.max(1, Math.floor(coordinates.length / 50));
+  const sampled = coordinates.filter((_, i) => i % sampleRate === 0);
+  const countedIds = new Set<string>();
+  let criticalCount = 0;
+
+  for (const report of reports) {
+    if (countedIds.has(report.id)) continue;
+    for (const [lng, lat] of sampled) {
+      const dist = haversineDistance(lat, lng, report.latitude, report.longitude);
+      if (dist <= corridorKm) {
+        countedIds.add(report.id);
+        if (report.severity === "critical" || report.severity === "high") criticalCount++;
+        break;
+      }
+    }
+  }
+
+  return { count: countedIds.size, criticalCount };
+}

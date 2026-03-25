@@ -91,11 +91,11 @@ export default function LocationSearch({
 
   const inputClass = dark
     ? "bg-transparent text-white placeholder-slate-400 text-sm flex-1 outline-none min-w-0"
-    : "bg-transparent text-slate-800 placeholder-slate-400 text-sm flex-1 outline-none min-w-0";
+    : "bg-transparent text-white placeholder-slate-500 text-sm flex-1 outline-none min-w-0";
 
   const containerClass = dark
     ? "flex-1 flex items-center gap-2 bg-white/10 rounded-lg px-3 py-1.5"
-    : `flex items-center gap-2 border-2 border-slate-200 rounded-lg px-3 py-2 focus-within:border-teal ${className}`;
+    : `flex items-center gap-2 border border-white/10 bg-white/5 rounded-xl px-3 py-2 focus-within:border-teal/50 ${className}`;
 
   return (
     <div ref={containerRef} className={`relative ${dark ? "flex-1" : ""} ${className}`}>
@@ -127,23 +127,23 @@ export default function LocationSearch({
       </div>
 
       {open && suggestions.length > 0 && (
-        <ul className="absolute top-full left-0 right-0 mt-1 z-[2000] bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden max-h-64 overflow-y-auto">
+        <ul className="absolute top-full left-0 right-0 mt-1 z-[2000] rounded-xl shadow-2xl overflow-hidden max-h-64 overflow-y-auto border" style={{ background: "rgba(13,20,36,0.98)", borderColor: "rgba(14,165,233,0.15)", backdropFilter: "blur(20px)" }}>
           {suggestions.map((p, i) => (
             <li key={p.place_id}>
               <button
                 type="button"
                 onMouseDown={(e) => { e.preventDefault(); selectPlace(p); }}
-                className={`w-full flex items-start gap-2.5 px-3 py-2.5 text-left hover:bg-slate-50 transition-colors ${
+                className={`w-full flex items-start gap-2.5 px-3 py-2.5 text-left hover:bg-white/5 transition-colors ${
                   i === activeIdx ? "bg-teal/10" : ""
                 }`}
               >
                 <MapPin className="w-4 h-4 text-teal shrink-0 mt-0.5" />
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-slate-800 truncate">
+                  <p className="text-sm font-medium text-white truncate">
                     {p.structured_formatting?.main_text ?? p.description}
                   </p>
                   {p.structured_formatting?.secondary_text && (
-                    <p className="text-xs text-slate-500 truncate">{p.structured_formatting.secondary_text}</p>
+                    <p className="text-xs text-slate-400 truncate">{p.structured_formatting.secondary_text}</p>
                   )}
                 </div>
               </button>

@@ -1,30 +1,35 @@
 /**
- * RiskIntelligenceService — computes the Global Safety Index (GSI)
+ * RiskIntelligenceService — Global Safety Index (GSI)
  *
- * GSI = (S_shelter × 0.4) − (T_thermal × 0.5) − (V_tone × 0.1)
+ * Design principle: START SAFE, only deduct for confirmed active threats.
+ * A location with no data should score HIGH (safe), not moderate.
  *
- * S_shelter  = normalised density of OSM-verified safe havens within 5km
- * T_thermal  = normalised proximity to NASA FIRMS fire/thermal anomalies
- * V_tone     = GDELT-derived negative news sentiment score (0..1)
+ * GSI = 100 − thermal_penalty − conflict_penalty − aqi_penalty − news_penalty
  *
- * Final GSI is clamped to 0..100 where 100 = safest.
+ * - thermal_penalty:   0–50  (NASA FIRMS hotspots within 5km — fires/explosions)
+ * - conflict_penalty:  0–30  (ACLED events within 50km, severity/recency weighted)
+ * - aqi_penalty:       0–10  (Only triggers if AQI > 100 — unhealthy)
+ * - news_penalty:      0–10  (Only local/relevant negative reporting, 0 if no data)
+ *
+ * Score thresholds:
+ * 80–100 → LOW RISK (green)
+ * 60–79  → ELEVATED (amber)
+ * 35–59  → HIGH RISK (orange)
+ * 0–34   → CRITICAL  (red)
  */
 
 import { haversineDistance } from "@/lib/utils/geo";
 
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
 export interface GSIResult {
-  score: number; // 0 – 100
+  score: number;
   label: string;
   color: string;
-  shelterDensity: number; // raw count within radius
-  thermalProximity: number; // 0..1 — closer = worse
-  newsTone: number; // 0..1 — higher = more negative
-  airQuality: number | null; // AQI value (null if unavailable)
-  airQualityCategory: string; // e.g. "Good", "Moderate", etc.
+  shelterDensity: number;
+  thermalProximity: number;
+  newsTone: number;
+  airQuality: number | null;
+  airQualityCategory: string;
+  conflictNearby: number;
   updatedAt: string;
 }
 
@@ -38,72 +43,89 @@ export interface ThermalHotspot {
   acq_time?: string;
 }
 
-// ---------------------------------------------------------------------------
-// Coordinate obfuscation (privacy)
-// ---------------------------------------------------------------------------
+export interface ConflictPoint {
+  latitude: number;
+  longitude: number;
+  severity: string;
+  event_date: string;
+  fatalities?: number;
+}
 
-/**
- * Blurs a coordinate to ~500m precision before sending to external APIs.
- * This prevents exact user location from leaking to GDELT / NASA servers.
- */
+// ── Coordinate obfuscation ──────────────────────────────────────────────────
 export function obfuscateCoord(val: number, decimals = 2): number {
   return Math.round(val * 10 ** decimals) / 10 ** decimals;
 }
 
-// ---------------------------------------------------------------------------
-// Sub-scores
-// ---------------------------------------------------------------------------
-
-/** Shelter density score (0..1): how many shelters per 5km radius (capped at 10) */
-function shelterScore(shelterCount: number): number {
-  return Math.min(shelterCount / 10, 1);
-}
-
-/** Thermal proximity score (0..1): 1 = hotspot right on user, 0 = none nearby */
-function thermalScore(
-  userLat: number,
-  userLng: number,
-  hotspots: ThermalHotspot[],
-  radiusKm = 5
-): number {
+// ── Thermal penalty (0–50) ──────────────────────────────────────────────────
+// Only fires within 5km count; scaled by proximity and fire intensity
+function thermalPenalty(userLat: number, userLng: number, hotspots: ThermalHotspot[]): number {
   if (hotspots.length === 0) return 0;
 
-  let worstProximity = 0;
+  let worst = 0;
   for (const h of hotspots) {
     const dist = haversineDistance(userLat, userLng, h.lat, h.lng);
-    if (dist <= radiusKm) {
-      const proximity = 1 - dist / radiusKm; // 1 = on top of it
-      // Weight by fire radiative power (bigger fire = worse)
-      const frpWeight = Math.min(h.frp / 50, 2); // cap at 2×
-      const adjusted = proximity * Math.max(frpWeight, 0.5);
-      if (adjusted > worstProximity) worstProximity = adjusted;
+    if (dist <= 5) {
+      const proximity = 1 - dist / 5;                   // 1 = on top, 0 = 5km away
+      const frpWeight = Math.min(h.frp / 40, 1.5);      // bigger fire = more weight
+      const penalty = proximity * Math.max(frpWeight, 0.3) * 50;
+      if (penalty > worst) worst = penalty;
     }
   }
-  return Math.min(worstProximity, 1);
+  return Math.min(worst, 50);
 }
 
-/** News sentiment score (0..1): fraction of nearby articles that are critical/warning */
-function newsToneScore(
-  articles: { severity: string }[]
-): number {
+// ── Conflict penalty (0–30) ─────────────────────────────────────────────────
+// ACLED events within 50km, weighted by severity and recency
+function conflictPenalty(userLat: number, userLng: number, events: ConflictPoint[]): number {
+  if (events.length === 0) return 0;
+
+  const severityWeights: Record<string, number> = {
+    critical: 12, high: 7, medium: 4, low: 2,
+  };
+
+  function timeDecay(dateStr: string): number {
+    const hoursAgo = (Date.now() - new Date(dateStr).getTime()) / 3_600_000;
+    if (hoursAgo < 24) return 1.0;
+    if (hoursAgo < 72) return 0.7;
+    if (hoursAgo < 168) return 0.4;
+    if (hoursAgo < 720) return 0.15;
+    return 0.05;
+  }
+
+  let total = 0;
+  for (const e of events) {
+    const dist = haversineDistance(userLat, userLng, e.latitude, e.longitude);
+    if (dist > 50) continue;
+    const distFactor = Math.max(0, 1 - dist / 50);     // closer = worse
+    const weight = severityWeights[e.severity] ?? 3;
+    const decay = timeDecay(e.event_date);
+    const fatalityBonus = Math.min((e.fatalities ?? 0) * 0.3, 3);
+    total += (weight + fatalityBonus) * distFactor * decay;
+  }
+  return Math.min(total, 30);
+}
+
+// ── AQI penalty (0–10) ──────────────────────────────────────────────────────
+// Only penalises if air quality is actually unhealthy (AQI > 100)
+function aqiPenalty(aqi: number | null): number {
+  if (aqi == null || aqi <= 100) return 0;
+  // Linear from AQI 100 (0 penalty) to 300+ (10 penalty)
+  return Math.min((aqi - 100) / 20, 10);
+}
+
+// ── News penalty (0–10) ─────────────────────────────────────────────────────
+// Only counts if there's a high proportion of critical news — neutral/mixed = 0
+function newsPenalty(articles: { severity: string }[]): number {
   if (articles.length === 0) return 0;
-  const negative = articles.filter(
-    (a) => a.severity === "critical" || a.severity === "warning"
-  ).length;
-  return negative / articles.length;
+  const critical = articles.filter((a) => a.severity === "critical").length;
+  const warning  = articles.filter((a) => a.severity === "warning").length;
+  // Only penalise if >= 30% of articles are critical/warning
+  const ratio = (critical * 2 + warning) / (articles.length * 2);
+  if (ratio < 0.3) return 0;
+  return Math.min(ratio * 10, 10);
 }
 
-// ---------------------------------------------------------------------------
-// Main calculator
-// ---------------------------------------------------------------------------
-
-/** Air quality score (0..1): 1 = hazardous, 0 = good */
-function airQualityScore(aqi: number | null): number {
-  if (aqi == null) return 0;
-  // US EPA AQI: 0-50 Good, 51-100 Moderate, 101-150 Unhealthy Sensitive, 151-200 Unhealthy, 201-300 Very Unhealthy, 301+ Hazardous
-  return Math.min(aqi / 300, 1);
-}
-
+// ── Main calculator ─────────────────────────────────────────────────────────
 export function calculateGSI(
   shelterCount: number,
   userLat: number,
@@ -111,50 +133,45 @@ export function calculateGSI(
   hotspots: ThermalHotspot[],
   newsArticles: { severity: string }[],
   aqi: number | null = null,
-  aqiCategory: string = "Unknown"
+  aqiCategory: string = "Unknown",
+  conflictEvents: ConflictPoint[] = []
 ): GSIResult {
-  const S = shelterScore(shelterCount);
-  const T = thermalScore(userLat, userLng, hotspots);
-  const V = newsToneScore(newsArticles);
-  const A = airQualityScore(aqi);
+  const T = thermalPenalty(userLat, userLng, hotspots);
+  const C = conflictPenalty(userLat, userLng, conflictEvents);
+  const A = aqiPenalty(aqi);
+  const N = newsPenalty(newsArticles);
 
-  // GSI formula: positive from shelters, negative from threats/news/air
-  // Adjusted weights to accommodate air quality: shelter 0.35, thermal 0.4, news 0.1, air 0.15
-  const rawGsi = S * 0.35 - T * 0.4 - V * 0.1 - A * 0.15;
-  // Map from [-0.65, 0.35] range to [0, 100]
-  const score = Math.max(0, Math.min(100, Math.round((rawGsi + 0.65) * 100)));
+  const score = Math.max(0, Math.min(100, Math.round(100 - T - C - A - N)));
 
   return {
     score,
     label: gsiLabel(score),
     color: gsiColor(score),
     shelterDensity: shelterCount,
-    thermalProximity: Math.round(T * 100) / 100,
-    newsTone: Math.round(V * 100) / 100,
+    thermalProximity: Math.round(T / 50 * 100) / 100,
+    newsTone: Math.round(N / 10 * 100) / 100,
     airQuality: aqi,
     airQualityCategory: aqiCategory,
+    conflictNearby: Math.round(C / 30 * 100) / 100,
     updatedAt: new Date().toISOString(),
   };
 }
 
 function gsiLabel(score: number): string {
-  if (score >= 75) return "LOW RISK";
-  if (score >= 50) return "MODERATE";
-  if (score >= 25) return "HIGH RISK";
+  if (score >= 80) return "LOW RISK";
+  if (score >= 60) return "ELEVATED";
+  if (score >= 35) return "HIGH RISK";
   return "CRITICAL";
 }
 
 function gsiColor(score: number): string {
-  if (score >= 75) return "#22C55E";
-  if (score >= 50) return "#F59E0B";
-  if (score >= 25) return "#F97316";
+  if (score >= 80) return "#22C55E";
+  if (score >= 60) return "#F59E0B";
+  if (score >= 35) return "#F97316";
   return "#DC2626";
 }
 
-// ---------------------------------------------------------------------------
-// Dead-Drop detector: zero aircraft in 50km radius = closed airspace alert
-// ---------------------------------------------------------------------------
-
+// ── Dead-Drop detector ──────────────────────────────────────────────────────
 export interface AirspaceStatus {
   aircraftInRadius: number;
   isClosed: boolean;
@@ -164,28 +181,21 @@ export interface AirspaceStatus {
 export function checkAirspaceClosure(
   userLat: number,
   userLng: number,
-  flights: { lat: number; lng: number; onGround: boolean }[],
-  radiusKm = 50
+  flights: { lat: number; lng: number; onGround: boolean }[]
 ): AirspaceStatus {
+  const RADIUS_KM = 50;
   const airborne = flights.filter((f) => !f.onGround);
-  const inRadius = airborne.filter(
-    (f) => haversineDistance(userLat, userLng, f.lat, f.lng) <= radiusKm
+  const nearby = airborne.filter(
+    (f) => haversineDistance(userLat, userLng, f.lat, f.lng) <= RADIUS_KM
   );
 
-  if (inRadius.length === 0 && airborne.length > 20) {
-    // There are plenty of aircraft globally but zero near us —
-    // strong indicator of closed/restricted airspace
-    return {
-      aircraftInRadius: 0,
-      isClosed: true,
-      message:
-        "AIRSPACE CLOSURE DETECTED — Zero aircraft within 50 km while global traffic is active. This may indicate imminent military activity. SEEK SHELTER IMMEDIATELY.",
-    };
-  }
+  const isClosed = nearby.length === 0 && airborne.length > 20;
 
   return {
-    aircraftInRadius: inRadius.length,
-    isClosed: false,
-    message: `${inRadius.length} aircraft within 50 km`,
+    aircraftInRadius: nearby.length,
+    isClosed,
+    message: isClosed
+      ? `No aircraft within ${RADIUS_KM}km while ${airborne.length} are airborne globally. This may indicate closed/restricted airspace — seek immediate shelter.`
+      : `${nearby.length} aircraft within ${RADIUS_KM}km. Airspace appears operational.`,
   };
 }

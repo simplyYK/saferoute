@@ -1,17 +1,17 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Navigation, Loader2, Route as RouteIcon, Bot, AlertTriangle, ChevronDown, ChevronUp, Footprints, Car, Bike } from "lucide-react";
 import { useMapStore } from "@/store/mapStore";
 import { useReports } from "@/hooks/useReports";
 import { useConflictData } from "@/hooks/useConflictData";
-import { calculateSafetyScore, safetyScoreColor, safetyScoreLabel } from "@/lib/utils/safety-score";
+import { calculateSafetyScore, safetyScoreColor, safetyScoreLabel, countReportsAlongRoute } from "@/lib/utils/safety-score";
 import { formatDistance, formatDuration } from "@/lib/utils/geo";
 import LocationSearch, { type LocationResult } from "@/components/shared/LocationSearch";
 import type { RouteData, ElevationStats } from "@/types/map";
 
 export default function RoutePlanner() {
-  const router = useRouter();
+  const params = useSearchParams();
   const { setRoutes, setSelectedRoute, selectedRoute, flyTo } = useMapStore();
   const { reports } = useReports();
   const { events } = useConflictData();
@@ -25,6 +25,23 @@ export default function RoutePlanner() {
   const [stepsOpen, setStepsOpen] = useState(false);
 
   const autoCalcRef = useRef(false);
+
+  // Pre-fill origin from URL params (e.g. from ActionGrid "Go Safely")
+  useEffect(() => {
+    const oLat = params.get("originLat");
+    const oLng = params.get("originLng");
+    const oName = params.get("originName");
+    const dLat = params.get("destLat");
+    const dLng = params.get("destLng");
+    const dName = params.get("destName");
+    if (oLat && oLng) {
+      setOrigin({ lat: parseFloat(oLat), lng: parseFloat(oLng), name: oName ?? "My Location" });
+    }
+    if (dLat && dLng) {
+      setDestination({ lat: parseFloat(dLat), lng: parseFloat(dLng), name: decodeURIComponent(dName ?? "Destination") });
+      autoCalcRef.current = !!(oLat && oLng);
+    }
+  }, [params]);
 
   // Pick up agent-initiated route from sessionStorage
   useEffect(() => {
@@ -130,28 +147,22 @@ export default function RoutePlanner() {
   const modeIcons = { foot: Footprints, car: Car, bike: Bike };
   const modeLabels = { foot: "Walk", car: "Drive", bike: "Cycle" };
 
-  const nearbyHazards = selectedRoute
-    ? reports.filter((r) => {
-        const coords = selectedRoute.geometry.coordinates;
-        return coords.some(([lng, lat]) => {
-          const d = Math.sqrt((lat - r.latitude) ** 2 + (lng - r.longitude) ** 2);
-          return d < 0.05;
-        });
-      }).length
-    : 0;
+  const routeReports = selectedRoute
+    ? countReportsAlongRoute(selectedRoute.geometry.coordinates, reports)
+    : { count: 0, criticalCount: 0 };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-[#0d1424]">
       {/* Header */}
-      <div className="px-4 py-3 border-b bg-navy text-white flex items-center justify-between">
-        <h2 className="font-semibold flex items-center gap-2 text-sm">
+      <div className="px-4 py-3 border-b border-white/8 flex items-center justify-between">
+        <h2 className="font-semibold flex items-center gap-2 text-sm text-white">
           <RouteIcon className="w-4 h-4 text-teal" />
           Safe Route Planner
         </h2>
         <button
           type="button"
-          onClick={() => router.push("/assistant")}
-          className="flex items-center gap-1.5 text-xs text-teal hover:text-white border border-teal/40 hover:border-white/40 rounded-lg px-2.5 py-1.5 transition-colors"
+          onClick={() => window.dispatchEvent(new CustomEvent("saferoute:open-ai"))}
+          className="flex items-center gap-1.5 text-xs text-teal hover:text-white border border-teal/30 hover:border-white/30 rounded-lg px-2.5 py-1.5 transition-colors"
         >
           <Bot className="w-3.5 h-3.5" />
           Ask AI
@@ -161,19 +172,20 @@ export default function RoutePlanner() {
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {/* Origin */}
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">From</label>
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1.5">From</label>
           <div className="flex gap-2">
             <div className="flex-1 min-w-0">
               {origin ? (
-                <div className="flex items-center gap-2 border-2 border-teal rounded-lg px-3 py-2 min-h-[44px] bg-teal/5">
-                  <span className="text-sm text-slate-700 truncate flex-1">{origin.name}</span>
-                  <button onClick={() => setOrigin(null)} className="text-xs text-slate-400 hover:text-slate-600 shrink-0">✕</button>
+                <div className="flex items-center gap-2 border border-teal/60 rounded-xl px-3 py-2 min-h-[44px] bg-teal/8">
+                  <span className="text-sm text-white truncate flex-1">{origin.name}</span>
+                  <button onClick={() => setOrigin(null)} className="text-slate-500 hover:text-white shrink-0 transition-colors">✕</button>
                 </div>
               ) : (
                 <LocationSearch
                   placeholder="Search origin..."
                   onSelect={handleOriginSelect}
                   className="min-h-[44px]"
+                  dark
                 />
               )}
             </div>
@@ -189,24 +201,25 @@ export default function RoutePlanner() {
 
         {/* Destination */}
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">To</label>
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1.5">To</label>
           {destination ? (
-            <div className="flex items-center gap-2 border-2 border-teal rounded-lg px-3 py-2 min-h-[44px] bg-teal/5">
-              <span className="text-sm text-slate-700 truncate flex-1">{destination.name}</span>
-              <button onClick={() => setDestination(null)} className="text-xs text-slate-400 hover:text-slate-600 shrink-0">✕</button>
+            <div className="flex items-center gap-2 border border-teal/60 rounded-xl px-3 py-2 min-h-[44px] bg-teal/8">
+              <span className="text-sm text-white truncate flex-1">{destination.name}</span>
+              <button onClick={() => setDestination(null)} className="text-slate-500 hover:text-white shrink-0 transition-colors">✕</button>
             </div>
           ) : (
             <LocationSearch
               placeholder="Search destination..."
               onSelect={handleDestinationSelect}
               className="min-h-[44px]"
+              dark
             />
           )}
         </div>
 
         {/* Transport mode */}
         <div>
-          <label className="text-xs font-semibold text-slate-500 uppercase tracking-wide block mb-1.5">Mode</label>
+          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wide block mb-1.5">Mode</label>
           <div className="grid grid-cols-3 gap-2">
             {(["foot", "car", "bike"] as const).map((p) => {
               const Icon = modeIcons[p];
@@ -217,7 +230,7 @@ export default function RoutePlanner() {
                   className={`flex flex-col items-center justify-center py-2.5 rounded-xl border-2 transition-all min-h-[56px] gap-1 ${
                     profile === p
                       ? "border-teal bg-teal/10 text-teal"
-                      : "border-slate-200 text-slate-500 hover:border-slate-300"
+                      : "border-white/10 text-slate-400 hover:border-white/20 hover:text-white"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -239,7 +252,7 @@ export default function RoutePlanner() {
         </button>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700 flex items-start gap-2">
+          <div className="bg-red-500/10 border border-red-500/25 rounded-xl p-3 text-sm text-red-400 flex items-start gap-2">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
             {error}
           </div>
@@ -248,24 +261,24 @@ export default function RoutePlanner() {
         {/* Route results */}
         {routes.length > 0 && (
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
               {routes.length} Route{routes.length > 1 ? "s" : ""} Found
             </p>
             {routes.map((route, i) => {
               const isSelected = selectedRoute?.id === route.id;
               const color = safetyScoreColor(route.safetyScore);
-              const badge = i === 0 ? "Safest" : i === routes.length - 1 ? "Fastest" : "Balanced";
+              const badge = i === 0 ? "Recommended" : i === routes.length - 1 ? "Fastest" : "Alternative";
               return (
                 <button
                   key={route.id}
                   onClick={() => setSelectedRoute(route)}
                   className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
-                    isSelected ? "border-teal bg-teal/5 shadow-sm" : "border-slate-200 bg-white hover:border-slate-300"
+                    isSelected ? "border-teal bg-teal/10 shadow-sm" : "border-white/10 bg-white/4 hover:border-white/20"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${i === 0 ? "bg-green-100 text-green-700" : "bg-slate-100 text-slate-600"}`}>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${i === 0 ? "bg-green-500/20 text-green-400" : "bg-white/10 text-slate-300"}`}>
                         {badge}
                       </span>
                     </div>
@@ -278,7 +291,7 @@ export default function RoutePlanner() {
                       <span>{safetyScoreLabel(route.safetyScore)}</span>
                     </div>
                   </div>
-                  <p className="text-sm text-slate-600">
+                  <p className="text-sm text-slate-300">
                     {formatDistance(route.distanceKm)} · {formatDuration(route.durationMinutes)}
                     {route.elevationStats && (
                       <span className="text-slate-400 ml-1">
@@ -292,21 +305,43 @@ export default function RoutePlanner() {
           </div>
         )}
 
-        {/* Hazard warning */}
-        {selectedRoute && nearbyHazards > 0 && (
-          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
+        {/* Route report warnings */}
+        {selectedRoute && routeReports.count >= 8 && (
+          <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/25 rounded-xl p-3 text-sm text-red-300">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
+            <div className="flex-1">
+              <p><strong>DANGER:</strong> {routeReports.count} incident reports along this route.</p>
+              {routes.length > 1 && (
+                <button
+                  onClick={() => setSelectedRoute(routes.find((r) => r.id !== selectedRoute.id) ?? selectedRoute)}
+                  className="mt-1 text-xs text-red-400 font-semibold underline"
+                >
+                  Try safer alternative →
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        {selectedRoute && routeReports.count >= 5 && routeReports.count < 8 && (
+          <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 text-sm text-amber-300">
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-400" />
+            <span><strong>CAUTION:</strong> {routeReports.count} community reports along this route. Consider alternatives.</span>
+          </div>
+        )}
+        {selectedRoute && routeReports.count > 0 && routeReports.count < 5 && (
+          <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/25 rounded-xl p-3 text-sm text-amber-300">
             <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
-            <span><strong>{nearbyHazards} community report{nearbyHazards > 1 ? "s" : ""}</strong> near this route. Proceed with caution.</span>
+            <span><strong>{routeReports.count} community report{routeReports.count > 1 ? "s" : ""}</strong> near this route. Proceed with caution.</span>
           </div>
         )}
 
         {/* Step-by-step directions */}
         {selectedRoute?.steps.length ? (
-          <div className="border border-slate-200 rounded-xl overflow-hidden">
+          <div className="border border-white/10 rounded-xl overflow-hidden">
             <button
               type="button"
               onClick={() => setStepsOpen((o) => !o)}
-              className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold text-slate-600 bg-slate-50 hover:bg-slate-100 transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-semibold text-slate-300 bg-white/5 hover:bg-white/8 transition-colors"
             >
               <span>Step-by-step directions ({selectedRoute.steps.length} steps)</span>
               {stepsOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -314,7 +349,7 @@ export default function RoutePlanner() {
             {stepsOpen && (
               <div className="divide-y divide-slate-100">
                 {selectedRoute.steps.map((step, i) => (
-                  <div key={i} className="flex gap-2.5 px-3 py-2 text-xs text-slate-700">
+                  <div key={i} className="flex gap-2.5 px-3 py-2 text-xs text-slate-300 border-b border-white/5 last:border-0">
                     <span className="shrink-0 w-4 text-slate-400 font-medium">{i + 1}.</span>
                     <span className="flex-1">{step.instruction}</span>
                     <span className="shrink-0 text-slate-400 ml-2">{formatDistance(step.distance / 1000)}</span>

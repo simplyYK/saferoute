@@ -1,15 +1,16 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import FloatingAIButton from "@/components/shared/FloatingAIButton";
 
 export const metadata: Metadata = {
-  title: "SafeRoute — Crisis Navigation Platform",
+  title: "Sentinel — Crisis Intelligence Platform",
   description:
-    "Real-time crowdsourced crisis navigation for civilians. Safe routes, emergency resources, and AI-powered guidance.",
+    "Real-time crisis intelligence for civilians in conflict zones. Safe routes, threat analysis, emergency resources, and AI-powered survival guidance.",
   manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1B2A4A",
+  themeColor: "#0a0f1e",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -26,8 +27,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body className="font-sans antialiased bg-slate-50 text-slate-900">
+      <body className="font-sans antialiased bg-[#0a0f1e] text-white">
         {children}
+        <FloatingAIButton />
         <script
           dangerouslySetInnerHTML={{
             __html: `

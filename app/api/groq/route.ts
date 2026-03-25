@@ -3,7 +3,7 @@ import { AGENT_TOOLS } from "@/lib/agent-tools-schema";
 
 export const dynamic = "force-dynamic";
 
-const SYSTEM_PROMPT = `You are an intelligence analyst for SafeRoute, a humanitarian crisis navigation platform.
+const SYSTEM_PROMPT = `You are an intelligence analyst for Sentinel, a crisis intelligence platform for civilians in conflict zones.
 You have access to real-time data and TOOLS that let you take actions. You MUST use tools to answer questions that require live data — never guess or make up data.
 
 Your capabilities via tools:

@@ -22,6 +22,7 @@ import { useGeolocation } from "@/hooks/useGeolocation";
 import { useReports } from "@/hooks/useReports";
 import { useConflictData } from "@/hooks/useConflictData";
 import { useFirmsHotspots } from "@/hooks/useFirmsHotspots";
+import { useResourceLayers } from "@/hooks/useResourceLayers";
 import { MAP_CONFIG } from "@/lib/constants/map-config";
 import { REPORT_CATEGORIES } from "@/lib/constants/report-types";
 import { safetyScoreColor } from "@/lib/utils/safety-score";
@@ -330,8 +331,9 @@ export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
   const visualMode = useAppStore((s) => s.visualMode);
   const { reports } = useReports();
   const { events } = useConflictData(country);
-  // Always fetch thermal data — display is controlled by dangerZones layer toggle
   const { hotspots } = useFirmsHotspots(true);
+  // Auto-fetch resources when per-type layers are toggled on
+  useResourceLayers();
 
   useEffect(() => {
     setViewCountry(country);
@@ -358,7 +360,7 @@ export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
         attribution={MAP_CONFIG.ATTRIBUTION}
         maxZoom={19}
       />
-      <ZoomControl position="topright" />
+      <ZoomControl position="bottomleft" />
       <MapEvents />
       <FlyToHandler />
       <UserLocationMarker />
@@ -368,9 +370,20 @@ export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
       )}
       {activeLayers.reports && <ReportMarkers reports={reports} />}
 
-      {/* Resources: from agent searches or resource page */}
-      {activeLayers.resources && resources.length > 0 && (
-        <ResourceMarkers resources={resources} />
+      {/* Resources: show when generic resources OR any per-type layer is on */}
+      {(activeLayers.resources || activeLayers.hospitals || activeLayers.pharmacies || activeLayers.shelters || activeLayers.police || activeLayers.water) && resources.length > 0 && (
+        <ResourceMarkers resources={
+          activeLayers.resources
+            ? resources
+            : resources.filter((r) => {
+                if (activeLayers.hospitals && (r.type === "hospital" || r.type === "clinic" || r.type === "doctors")) return true;
+                if (activeLayers.pharmacies && r.type === "pharmacy") return true;
+                if (activeLayers.shelters && (r.type === "shelter" || r.type === "community_centre" || r.type === "place_of_worship" || r.type === "school" || r.type === "fire_station" || r.type === "social_facility")) return true;
+                if (activeLayers.police && r.type === "police") return true;
+                if (activeLayers.water && (r.type === "water_point" || r.type === "drinking_water")) return true;
+                return false;
+              })
+        } />
       )}
 
       {/* Danger zones: buffer circles around critical conflict events */}

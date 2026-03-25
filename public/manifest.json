@@ -1,11 +1,11 @@
 {
-  "name": "SafeRoute — Crisis Navigation",
-  "short_name": "SafeRoute",
-  "description": "Real-time crisis navigation for civilians in conflict zones",
+  "name": "Sentinel — Crisis Intelligence",
+  "short_name": "Sentinel",
+  "description": "Real-time crisis intelligence platform for civilians in conflict zones",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1B2A4A",
-  "theme_color": "#1B2A4A",
+  "background_color": "#0a0f1e",
+  "theme_color": "#0EA5E9",
   "orientation": "portrait-primary",
   "icons": [
     {

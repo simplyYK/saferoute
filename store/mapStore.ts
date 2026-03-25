@@ -10,6 +10,12 @@ interface MapLayers {
   reports: boolean;
   resources: boolean;
   dangerZones: boolean;
+  // Per-resource-type toggles (auto-fetch from Overpass when enabled)
+  hospitals: boolean;
+  pharmacies: boolean;
+  shelters: boolean;
+  police: boolean;
+  water: boolean;
 }
 
 export interface MapResource {
@@ -67,8 +73,13 @@ export const useMapStore = create<MapState>((set) => ({
   activeLayers: {
     conflictEvents: true,
     reports: true,
-    resources: true,
+    resources: false,
     dangerZones: true,
+    hospitals: false,
+    pharmacies: false,
+    shelters: false,
+    police: false,
+    water: false,
   },
   globeLayers: defaultGlobeLayers,
   selectedRoute: null,

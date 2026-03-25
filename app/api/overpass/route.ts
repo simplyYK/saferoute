@@ -6,12 +6,18 @@ const CACHE_TTL_MS = 60 * 60 * 1000;
 const OVERPASS_TAGS: Record<string, string> = {
   hospital: 'node["amenity"="hospital"]',
   clinic: 'node["amenity"="clinic"]',
+  doctors: 'node["amenity"="doctors"]',
   pharmacy: 'node["amenity"="pharmacy"]',
-  shelter: '(node["amenity"="shelter"];node["building"="bunker"];)',
+  shelter: '(node["amenity"="shelter"];node["building"="bunker"];node["historic"="bunker"];node["social_facility"="shelter"];)',
+  social_facility: 'node["amenity"="social_facility"]',
+  community_centre: 'node["amenity"="community_centre"]',
+  place_of_worship: 'node["amenity"="place_of_worship"]',
+  school: 'node["amenity"="school"]',
   police: 'node["amenity"="police"]',
   fire_station: 'node["amenity"="fire_station"]',
   embassy: 'node["amenity"="embassy"]',
   water_point: 'node["amenity"="drinking_water"]',
+  drinking_water: 'node["amenity"="drinking_water"]',
 };
 
 export async function GET(request: NextRequest) {

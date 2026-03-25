@@ -144,6 +144,81 @@ export const REGIONS: RegionConfig[] = [
       { label: "Ambulance", number: "112" },
     ],
   },
+  {
+    id: "iran",
+    name: "Iran",
+    country: "Iran",
+    countryCode: "IR",
+    center: [32.4279, 53.6880],
+    zoom: 6,
+    emergencyNumbers: [
+      { label: "Police", number: "110" },
+      { label: "Ambulance", number: "115" },
+      { label: "Fire", number: "125" },
+    ],
+  },
+  {
+    id: "israel",
+    name: "Israel",
+    country: "Israel",
+    countryCode: "IL",
+    center: [31.0461, 34.8516],
+    zoom: 8,
+    emergencyNumbers: [
+      { label: "Police", number: "100" },
+      { label: "Ambulance (MDA)", number: "101" },
+      { label: "Fire", number: "102" },
+      { label: "Home Front Command", number: "104" },
+    ],
+  },
+  {
+    id: "iraq",
+    name: "Iraq",
+    country: "Iraq",
+    countryCode: "IQ",
+    center: [33.2232, 43.6793],
+    zoom: 6,
+    emergencyNumbers: [
+      { label: "Police", number: "104" },
+      { label: "Ambulance", number: "122" },
+    ],
+  },
+  {
+    id: "libya",
+    name: "Libya",
+    country: "Libya",
+    countryCode: "LY",
+    center: [26.3351, 17.2283],
+    zoom: 6,
+    emergencyNumbers: [
+      { label: "Police", number: "1515" },
+      { label: "Ambulance", number: "1515" },
+    ],
+  },
+  {
+    id: "haiti",
+    name: "Haiti",
+    country: "Haiti",
+    countryCode: "HT",
+    center: [18.9712, -72.2852],
+    zoom: 8,
+    emergencyNumbers: [
+      { label: "Police", number: "114" },
+      { label: "Red Cross", number: "2810-1810" },
+    ],
+  },
+  {
+    id: "mali",
+    name: "Mali",
+    country: "Mali",
+    countryCode: "ML",
+    center: [17.5707, -3.9962],
+    zoom: 6,
+    emergencyNumbers: [
+      { label: "Police", number: "17" },
+      { label: "Fire/Ambulance", number: "18" },
+    ],
+  },
 ];
 
 export function getRegionById(id: string): RegionConfig | undefined {

@@ -62,7 +62,7 @@ export default function SOSButton() {
 
       {open && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+          <div className="bg-[#0d1424] rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden border border-red-500/30">
             {/* Header with close */}
             <div className="bg-red-600 px-5 py-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -86,14 +86,14 @@ export default function SOSButton() {
 
             <div className="p-5 space-y-4">
               {/* Location */}
-              <div className="bg-slate-50 rounded-xl p-3">
-                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Your Location</p>
+              <div className="bg-white/5 rounded-xl p-3 border border-white/8">
+                <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Your Location</p>
                 {loading ? (
                   <p className="text-sm text-slate-400 animate-pulse">Getting GPS...</p>
                 ) : coords ? (
-                  <p className="font-mono text-sm text-slate-900">{coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</p>
+                  <p className="font-mono text-sm text-white">{coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</p>
                 ) : (
-                  <p className="text-sm text-amber-600">Location unavailable — enable GPS</p>
+                  <p className="text-sm text-amber-400">Location unavailable — enable GPS</p>
                 )}
               </div>
 
@@ -107,13 +107,13 @@ export default function SOSButton() {
                     <a
                       key={number}
                       href={`tel:${number}`}
-                      className="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                      className="flex items-center gap-3 p-2.5 rounded-xl border border-white/10 hover:border-blue-500/40 hover:bg-blue-500/10 transition-colors"
                     >
                       <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
                         <Phone className="w-4 h-4 text-blue-600" />
                       </div>
                       <div>
-                        <p className="text-sm font-medium text-slate-900">{number}</p>
+                        <p className="text-sm font-medium text-white">{number}</p>
                         <p className="text-xs text-slate-500">{label}</p>
                       </div>
                     </a>
@@ -133,7 +133,7 @@ export default function SOSButton() {
               {/* Back to safety */}
               <button
                 onClick={() => setOpen(false)}
-                className="w-full text-slate-500 hover:text-slate-700 text-sm py-2 transition-colors"
+                className="w-full text-slate-400 hover:text-white text-sm py-2 transition-colors"
               >
                 Close and return to app
               </button>

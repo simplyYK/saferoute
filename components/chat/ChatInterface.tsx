@@ -34,7 +34,7 @@ const QUICK_ACTIONS = [
 const WELCOME: ChatMessage = {
   id: "welcome",
   role: "assistant",
-  content: "I'm your **SafeRoute intelligence agent**.\n\nI can **search places**, **find hospitals & shelters**, **calculate safe routes**, **check air quality**, **track military aircraft**, and **control the map** — all through conversation.\n\nTry asking me anything, or use the quick actions below.",
+  content: "I'm your **Sentinel AI** — crisis intelligence at your command.\n\nI can **find shelters & hospitals**, **calculate safe routes**, **check live threats**, **track aircraft**, **get air quality**, and **control the map** — all through conversation.\n\nAsk me anything or use quick actions below.",
   timestamp: new Date(),
 };
 
@@ -58,7 +58,7 @@ function QuickActionsPanel({ expanded: defaultExpanded, onAction }: { expanded: 
               key={label}
               type="button"
               onClick={() => onAction(prompt)}
-              className="flex items-center gap-2 text-xs px-3 py-2.5 rounded-xl border border-slate-200 hover:border-teal hover:bg-teal/5 hover:text-teal transition-all text-left text-slate-600"
+              className="flex items-center gap-2 text-xs px-3 py-2.5 rounded-xl border border-white/10 hover:border-teal/40 hover:bg-teal/5 hover:text-teal transition-all text-left text-slate-400"
             >
               <Icon className="w-3.5 h-3.5 shrink-0 text-teal" />
               {label}
@@ -139,7 +139,7 @@ function executeAction(action: AgentAction, router: ReturnType<typeof useRouter>
   }
 }
 
-export default function ChatInterface({ className = "" }: { className?: string }) {
+export default function ChatInterface({ className = "", initialPrompt }: { className?: string; initialPrompt?: string }) {
   const router = useRouter();
   const { language, userLocation } = useAppStore();
   const { viewCountry, center, bounds } = useMapStore();
@@ -152,6 +152,7 @@ export default function ChatInterface({ className = "" }: { className?: string }
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const initialPromptSent = useRef(false);
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
@@ -172,6 +173,16 @@ export default function ChatInterface({ className = "" }: { className?: string }
   }, []);
 
   useEffect(() => () => { abortRef.current?.abort(); }, []);
+
+  // Auto-send initialPrompt once on mount
+  useEffect(() => {
+    if (initialPrompt && !initialPromptSent.current) {
+      initialPromptSent.current = true;
+      const t = setTimeout(() => { void sendMessage(initialPrompt); }, 400);
+      return () => clearTimeout(t);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const buildContext = useCallback(() => {
     const ctx: Record<string, unknown> = {
@@ -274,9 +285,9 @@ export default function ChatInterface({ className = "" }: { className?: string }
   const hasLocation = !!userLocation;
 
   return (
-    <div className={`flex flex-col h-full bg-white ${className}`}>
+    <div className={`flex flex-col h-full bg-[#0a0f1e] ${className}`}>
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b bg-navy text-white gap-2 shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 text-white gap-2 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <Bot className="w-5 h-5 text-teal shrink-0" />
           <h2 className="font-semibold text-sm truncate">Intelligence Agent</h2>
@@ -299,7 +310,7 @@ export default function ChatInterface({ className = "" }: { className?: string }
       </div>
 
       {/* Status bar */}
-      <div className="px-4 py-2 bg-slate-50 border-b border-slate-200 flex items-center gap-3 text-[11px] text-slate-500 shrink-0 flex-wrap">
+      <div className="px-4 py-2 bg-white/3 border-b border-white/6 flex items-center gap-3 text-[11px] text-slate-500 shrink-0 flex-wrap">
         <span className="flex items-center gap-1">
           {hasLocation ? (
             <><Wifi className="w-3 h-3 text-green-500" /><span className="text-green-600 font-medium">GPS Active</span></>
@@ -328,7 +339,7 @@ export default function ChatInterface({ className = "" }: { className?: string }
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
             {msg.role === "assistant" && (
-              <div className="w-6 h-6 rounded-full bg-navy flex items-center justify-center shrink-0 mr-2 mt-1">
+              <div className="w-6 h-6 rounded-full bg-teal/15 flex items-center justify-center shrink-0 mr-2 mt-1">
                 <Bot className="w-3.5 h-3.5 text-teal" />
               </div>
             )}
@@ -336,11 +347,11 @@ export default function ChatInterface({ className = "" }: { className?: string }
               className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
                 msg.role === "user"
                   ? "bg-teal text-white rounded-br-sm"
-                  : "bg-slate-100 text-slate-900 rounded-bl-sm"
+                  : "bg-white/6 text-slate-200 rounded-bl-sm border border-white/6"
               }`}
             >
               {msg.role === "assistant" ? (
-                <div className="prose prose-sm max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-strong:text-slate-900">
+                <div className="prose prose-sm prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0 prose-strong:text-teal">
                   <ReactMarkdown>{msg.content || (msg.isStreaming ? "Thinking & using tools..." : "")}</ReactMarkdown>
                 </div>
               ) : (
@@ -354,9 +365,9 @@ export default function ChatInterface({ className = "" }: { className?: string }
             <div className="w-6 h-6 rounded-full bg-navy flex items-center justify-center shrink-0 mr-2 mt-1">
               <Bot className="w-3.5 h-3.5 text-teal" />
             </div>
-            <div className="bg-slate-100 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2">
+            <div className="bg-white/6 border border-white/6 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin text-teal" />
-              <span className="text-xs text-slate-500">Analyzing with live data...</span>
+              <span className="text-xs text-slate-400">Analyzing with live data...</span>
             </div>
           </div>
         )}
@@ -371,16 +382,16 @@ export default function ChatInterface({ className = "" }: { className?: string }
       )}
 
       {/* Input */}
-      <div className="px-4 pb-4 pt-2 border-t bg-white shrink-0 flex gap-2">
+      <div className="px-4 pb-4 pt-2 border-t border-white/8 bg-[#0a0f1e] shrink-0 flex gap-2">
         <input
           ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && void sendMessage(input)}
-          placeholder={hasLocation ? "Ask anything — I can search, route, report, and control the map..." : "Ask anything… (enable GPS for best results)"}
+          placeholder={hasLocation ? "Ask anything — search, route, report..." : "Ask anything… (enable GPS for best results)"}
           disabled={loading}
-          className="flex-1 border-2 border-slate-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-teal disabled:opacity-50 min-h-[48px]"
+          className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-teal/50 disabled:opacity-50 min-h-[48px] transition-colors"
         />
         <button
           type="button"

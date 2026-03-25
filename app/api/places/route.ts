@@ -69,7 +69,7 @@ async function googlePlacesSearch(q: string, lat?: string | null, lng?: string |
 async function photonSearch(q: string) {
   const res = await fetch(
     `${PHOTON}?q=${encodeURIComponent(q)}&limit=6&lang=en`,
-    { headers: { "User-Agent": "SafeRoute/1.0" } }
+    { headers: { "User-Agent": "Sentinel/2.0" } }
   );
   if (!res.ok) throw new Error(`Photon ${res.status}`);
   const data = (await res.json()) as { features?: PhotonFeature[] };

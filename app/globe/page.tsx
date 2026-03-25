@@ -36,6 +36,9 @@ const IntelligenceGlobe = dynamic(
 );
 
 export default function GlobePage() {
+  // embed=true hides chrome when rendered inside the Intel page iframe
+  const isEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("embed") === "true";
+
   const { reports } = useReports();
   const layers = useMapStore((s) => s.globeLayers);
   const toggleGlobeLayer = useMapStore((s) => s.toggleGlobeLayer);
@@ -193,8 +196,8 @@ export default function GlobePage() {
 
   return (
     <div className="h-screen flex flex-col bg-[#0a0f1e] overflow-hidden text-white">
-      <TopBar />
-      <div className="flex-1 relative mt-14 mb-14 min-h-0">
+      {!isEmbed && <TopBar />}
+      <div className={`flex-1 relative min-h-0 ${isEmbed ? "" : "mt-14 mb-14"}`}>
         <div
           className={cn(
             "absolute inset-0 min-h-0",
@@ -233,17 +236,19 @@ export default function GlobePage() {
             onEarthquakeSelect={setQuakeDetail}
           />
         </div>
-        <VisualModeSelector />
+        {!isEmbed && <VisualModeSelector />}
 
-        {/* SITREP button */}
-        <button
-          type="button"
-          onClick={generateSitrep}
-          className="absolute top-3 right-[290px] z-[600] flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-teal/40 bg-black/50 text-teal hover:bg-teal/20 transition-all backdrop-blur"
-        >
-          <FileText className="w-3.5 h-3.5" />
-          SITREP
-        </button>
+        {/* SITREP button — hidden in embed mode since Intel page has its own */}
+        {!isEmbed && (
+          <button
+            type="button"
+            onClick={generateSitrep}
+            className="absolute top-3 right-[290px] z-[600] flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-teal/40 bg-black/50 text-teal hover:bg-teal/20 transition-all backdrop-blur"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            SITREP
+          </button>
+        )}
 
         <LayerPanel layers={layers} onToggle={toggle} counts={counts} />
         {layers.cctv && <CCTVPanel />}
@@ -363,7 +368,7 @@ export default function GlobePage() {
               </div>
 
               <div className="px-4 py-3 border-t border-white/10 flex justify-between items-center text-[10px] text-slate-500">
-                <span>SafeRoute Intelligence · AUTO-GENERATED · NOT FOR OPERATIONAL USE</span>
+                <span>Sentinel Intelligence · AUTO-GENERATED · NOT FOR OPERATIONAL USE</span>
                 <button
                   type="button"
                   onClick={() => setSitrepOpen(false)}
@@ -376,7 +381,7 @@ export default function GlobePage() {
           </div>
         )}
       </div>
-      <BottomNav />
+      {!isEmbed && <BottomNav />}
     </div>
   );
 }

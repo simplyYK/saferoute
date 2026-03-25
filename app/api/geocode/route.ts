@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&format=json&zoom=3&accept-language=en`,
-      { headers: { "User-Agent": "SafeRoute/1.0" } }
+      { headers: { "User-Agent": "Sentinel/2.0" } }
     );
     if (!res.ok) throw new Error(`Nominatim ${res.status}`);
     const data = (await res.json()) as {

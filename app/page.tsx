@@ -1,158 +1,260 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import {
-  MapPin,
-  Shield,
-  Bot,
-  Route,
-  AlertTriangle,
-  Users,
-  Globe,
-} from "lucide-react";
+import { useRouter } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { MapPin, ChevronDown, AlertTriangle, Loader2 } from "lucide-react";
+import { useAppStore } from "@/store/appStore";
+import { useMapStore } from "@/store/mapStore";
+import { REGIONS } from "@/lib/constants/regions";
+import { SentinelIcon, SentinelWordmark } from "@/components/shared/SentinelLogo";
 
-export default function LandingPage() {
-  const [wide, setWide] = useState(false);
+const DEMO_COORDS: Record<string, { lat: number; lng: number }> = {
+  ukraine: { lat: 49.9935, lng: 36.2304 },
+  gaza: { lat: 31.4167, lng: 34.3333 },
+  sudan: { lat: 15.5007, lng: 32.5599 },
+  myanmar: { lat: 19.7633, lng: 96.0785 },
+  yemen: { lat: 15.3694, lng: 44.191 },
+  syria: { lat: 34.8021, lng: 38.9968 },
+};
+
+export default function EntryScreen() {
+  const router = useRouter();
+  const { userLocation, setUserLocation, setDemoMode } = useAppStore();
+  const { setCenter, setViewCountry } = useMapStore();
+  const [locating, setLocating] = useState(false);
+  const [locError, setLocError] = useState<string | null>(null);
+  const [showRegions, setShowRegions] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    const q = () => setWide(window.innerWidth >= 1024);
-    q();
-    window.addEventListener("resize", q);
-    return () => window.removeEventListener("resize", q);
-  }, []);
+    setMounted(true);
+    const params = new URLSearchParams(window.location.search);
+    const demo = params.get("demo");
+    const region = params.get("region")?.toLowerCase();
+    if (demo === "true" && region && DEMO_COORDS[region]) {
+      const coords = DEMO_COORDS[region];
+      setDemoMode(true, region);
+      setUserLocation(coords);
+      setCenter([coords.lat, coords.lng]);
+      const regionConfig = REGIONS.find((r) => r.id === region);
+      if (regionConfig) setViewCountry(regionConfig.country);
+      router.push("/map");
+      return;
+    }
+    if (userLocation) router.push("/map");
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleUseLocation = () => {
+    if (!navigator.geolocation) {
+      setLocError("Geolocation not supported — choose a region below.");
+      setShowRegions(true);
+      return;
+    }
+    setLocating(true);
+    setLocError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const coords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setUserLocation(coords);
+        setCenter([coords.lat, coords.lng]);
+        router.push("/map");
+      },
+      () => {
+        setLocating(false);
+        setLocError("Location access denied — choose a region below.");
+        setShowRegions(true);
+      },
+      { timeout: 8000 }
+    );
+  };
+
+  const handleRegionSelect = (region: (typeof REGIONS)[0]) => {
+    setViewCountry(region.country);
+    setCenter(region.center);
+    router.push(`/map?region=${region.id}`);
+  };
+
+  if (!mounted) return null;
 
   return (
-    <main className="min-h-screen bg-navy text-white flex flex-col">
-      <header className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-2">
-          <Shield className="w-6 h-6 text-teal" />
-          <span className="font-bold text-lg">SafeRoute</span>
-        </div>
-        <div className="flex gap-2 text-xs text-slate-400">
-          <span>EN</span>
-          <span>|</span>
-          <span>عربي</span>
-          <span>|</span>
-          <span>Укр</span>
-        </div>
-      </header>
+    <main className="min-h-screen bg-[#060c1a] text-white flex flex-col items-center justify-center relative overflow-hidden">
+      {/* Tactical grid background */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-40"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(14,165,233,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(14,165,233,0.05) 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+        }}
+      />
+      {/* Corner brackets */}
+      <div className="absolute top-8 left-8 w-12 h-12 border-t-2 border-l-2 border-teal/20 pointer-events-none" />
+      <div className="absolute top-8 right-8 w-12 h-12 border-t-2 border-r-2 border-teal/20 pointer-events-none" />
+      <div className="absolute bottom-8 left-8 w-12 h-12 border-b-2 border-l-2 border-teal/20 pointer-events-none" />
+      <div className="absolute bottom-8 right-8 w-12 h-12 border-b-2 border-r-2 border-teal/20 pointer-events-none" />
+      {/* Glow */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-teal/4 rounded-full blur-3xl pointer-events-none" />
 
-      <section className="flex-1 flex flex-col items-center justify-center px-6 py-16 text-center">
-        <div className="mb-4 flex items-center gap-2 bg-red-600/20 border border-red-500/30 rounded-full px-4 py-1.5 text-red-300 text-sm">
-          <AlertTriangle className="w-4 h-4" />
-          <span>100M+ people in active conflict zones</span>
-        </div>
-
-        <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-4 text-balance">
-          You are not alone.
-          <br />
-          <span className="text-teal">Find safety now.</span>
-        </h1>
-
-        <p className="text-slate-300 text-lg max-w-md mb-4 text-balance">
-          Real-time crisis map, safe routes, and emergency resources — no sign-up needed.
-        </p>
-
-        <p className="text-sm text-slate-400 max-w-md mb-6 text-balance">
-          Intelligence Mode for coordinators · Field Mode for civilians
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-3 w-full max-w-md mb-4 justify-center">
-          <Link
-            href="/globe"
-            className={`w-full font-bold py-4 px-6 rounded-2xl text-lg transition-colors flex items-center justify-center gap-2 border-2 ${
-              wide
-                ? "bg-teal hover:bg-sky-400 text-white border-transparent"
-                : "bg-white/5 text-slate-200 border-white/15 hover:border-white/30"
-            }`}
-          >
-            <Globe className="w-5 h-5" />
-            Open Intelligence Dashboard
-          </Link>
-          <Link
-            href="/map"
-            className={`w-full font-bold py-4 px-6 rounded-2xl text-lg transition-colors flex items-center justify-center gap-2 border-2 ${
-              !wide
-                ? "bg-teal hover:bg-sky-400 text-white border-transparent"
-                : "bg-white/5 text-slate-200 border-white/15 hover:border-white/30"
-            }`}
-          >
-            <MapPin className="w-5 h-5" />
-            Open Crisis Map
-          </Link>
-        </div>
-
-        <p className="text-xs text-slate-500 flex items-center gap-1">
-          <Shield className="w-3 h-3" />
-          Your location stays on your device. We never track you.
-        </p>
-      </section>
-
-      <section className="px-6 pb-8 grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-2xl mx-auto w-full">
-        {[
-          {
-            icon: MapPin,
-            label: "Live Danger Map",
-            desc: "Real-time conflict events & hazards",
-            color: "text-red-400",
-          },
-          {
-            icon: Users,
-            label: "Community Reports",
-            desc: "Crowdsourced Waze-style alerts",
-            color: "text-yellow-400",
-          },
-          {
-            icon: Bot,
-            label: "AI Assistant",
-            desc: "First aid & survival guidance",
-            color: "text-teal",
-          },
-          {
-            icon: Route,
-            label: "Safe Routes",
-            desc: "Danger-weighted route planning",
-            color: "text-green-400",
-          },
-        ].map(({ icon: Icon, label, desc, color }) => (
-          <div key={label} className="bg-white/5 rounded-xl p-3 text-center">
-            <Icon className={`w-6 h-6 ${color} mx-auto mb-2`} />
-            <p className="font-semibold text-sm">{label}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 flex flex-col items-center px-6 w-full max-w-sm"
+      >
+        {/* Logo */}
+        <motion.div
+          initial={{ scale: 0.7, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-8 flex flex-col items-center gap-4"
+        >
+          <div className="relative">
+            <div className="absolute inset-0 bg-teal/15 rounded-full blur-2xl scale-150 animate-pulse" />
+            <SentinelIcon size={64} animated />
           </div>
-        ))}
-      </section>
-
-      <section className="border-t border-white/10 px-6 py-6 flex justify-around max-w-2xl mx-auto w-full">
-        {[
-          { stat: "100M+", label: "Displaced globally" },
-          { stat: "6", label: "Languages" },
-          { stat: "0", label: "Sign-ups needed" },
-        ].map(({ stat, label }) => (
-          <div key={label} className="text-center">
-            <p className="text-2xl font-bold text-teal">{stat}</p>
-            <p className="text-xs text-slate-400">{label}</p>
+          <div className="text-center">
+            <SentinelWordmark size="lg" />
+            <p className="text-[11px] text-slate-500 tracking-[0.3em] uppercase mt-1">Navigate. Survive. Report.</p>
           </div>
-        ))}
-      </section>
+        </motion.div>
 
-      <section className="px-6 pb-12 flex flex-col items-center gap-3">
-        <p className="text-sm text-slate-400 flex items-center gap-1">
-          <Globe className="w-4 h-4" /> Select your region or open the map to use your location
-        </p>
-        <div className="flex flex-wrap justify-center gap-2">
-          {["Ukraine", "Gaza", "Sudan", "Myanmar", "Yemen", "Syria", "Lebanon", "Ethiopia", "Somalia", "Afghanistan"].map((region) => (
-            <Link
-              key={region}
-              href={`/map?region=${region}`}
-              className="text-xs px-3 py-1.5 rounded-full border border-white/20 hover:border-teal hover:text-teal transition-colors"
+        {/* Tagline */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.5 }}
+          className="text-center mb-8"
+        >
+          <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-2">
+            When danger surrounds you,{" "}
+            <span
+              className="bg-clip-text text-transparent"
+              style={{ backgroundImage: "linear-gradient(135deg, #0EA5E9, #38BDF8, #7DD3FC)" }}
             >
-              {region}
-            </Link>
-          ))}
-        </div>
-      </section>
+              Sentinel shows you the way out.
+            </span>
+          </h1>
+          <p className="text-slate-400 text-sm leading-relaxed">
+            Live conflict mapping, safe route navigation, nearby resources,<br />
+            and AI-powered survival guidance — all in one app.
+          </p>
+        </motion.div>
+
+        {/* CTAs */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.38, duration: 0.5 }}
+          className="w-full space-y-3 mb-5"
+        >
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            onClick={handleUseLocation}
+            disabled={locating}
+            className="w-full relative text-white font-bold py-4 px-6 rounded-2xl text-base flex items-center justify-center gap-3 disabled:opacity-70 min-h-[58px] overflow-hidden"
+            style={{
+              background: "linear-gradient(135deg, #0EA5E9 0%, #0284C7 100%)",
+              boxShadow: "0 0 30px rgba(14,165,233,0.25), inset 0 1px 0 rgba(255,255,255,0.15)",
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/8 to-transparent -translate-x-full animate-[shimmer_3s_infinite]" />
+            {locating ? (
+              <><Loader2 className="w-4 h-4 animate-spin" />Acquiring location…</>
+            ) : (
+              <><MapPin className="w-4 h-4" />Use My Location</>
+            )}
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.01, borderColor: "rgba(14,165,233,0.4)" }}
+            whileTap={{ scale: 0.99 }}
+            onClick={() => setShowRegions(!showRegions)}
+            className="w-full border border-white/12 text-slate-300 hover:text-white font-semibold py-3.5 px-6 rounded-2xl text-sm flex items-center justify-center gap-2.5 transition-all min-h-[52px] backdrop-blur-sm"
+            style={{ background: "rgba(255,255,255,0.04)" }}
+          >
+            Choose Conflict Region
+            <motion.span animate={{ rotate: showRegions ? 180 : 0 }} transition={{ duration: 0.2 }}>
+              <ChevronDown className="w-4 h-4" />
+            </motion.span>
+          </motion.button>
+        </motion.div>
+
+        {/* Error */}
+        <AnimatePresence>
+          {locError && (
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="flex items-center gap-2 text-amber-400 text-xs mb-4 bg-amber-400/8 border border-amber-400/15 rounded-xl px-4 py-2.5 w-full"
+            >
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              {locError}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Region grid */}
+        <AnimatePresence>
+          {showRegions && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.28 }}
+              className="w-full overflow-hidden mb-5"
+            >
+              <div
+                className="rounded-2xl p-4"
+                style={{ background: "rgba(14,165,233,0.04)", border: "1px solid rgba(14,165,233,0.12)" }}
+              >
+                <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-semibold mb-3">
+                  Active conflict zones
+                </p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {REGIONS.map((region, i) => (
+                    <motion.button
+                      key={region.id}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.035 }}
+                      whileHover={{ scale: 1.03, backgroundColor: "rgba(14,165,233,0.1)" }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => handleRegionSelect(region)}
+                      className="text-left px-3 py-2.5 rounded-xl border border-white/6 hover:border-teal/30 transition-all text-sm font-medium text-slate-300 hover:text-white"
+                    >
+                      {region.name}
+                    </motion.button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Trust badges */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.55 }}
+          className="flex items-center gap-4 text-[10px] text-slate-600"
+        >
+          <span className="flex items-center gap-1">
+            <span className="w-1 h-1 bg-green-500 rounded-full" />
+            No sign-up
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-1 h-1 bg-green-500 rounded-full" />
+            Location private
+          </span>
+          <span className="flex items-center gap-1">
+            <span className="w-1 h-1 bg-green-500 rounded-full" />
+            Works offline
+          </span>
+        </motion.div>
+      </motion.div>
     </main>
   );
 }
