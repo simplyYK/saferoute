@@ -165,7 +165,7 @@ export default function RoutePlanner({ onStartNavigation }: RoutePlannerProps = 
         </h2>
         <button
           type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent("saferoute:open-ai"))}
+          onClick={() => window.dispatchEvent(new CustomEvent("sentinel:open-ai", { detail: "Help me plan a safe route. What are the threats I should avoid?" }))}
           className="flex items-center gap-1.5 text-xs text-teal hover:text-white border border-teal/30 hover:border-white/30 rounded-lg px-2.5 py-1.5 transition-colors"
         >
           <Bot className="w-3.5 h-3.5" />
