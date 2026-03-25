@@ -100,7 +100,7 @@ export default function EntryScreen() {
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 flex flex-col items-center px-6 w-full max-w-sm"
+        className="relative z-10 flex flex-col items-center px-6 w-full max-w-2xl"
       >
         {/* Logo */}
         <motion.div
@@ -126,7 +126,7 @@ export default function EntryScreen() {
           transition={{ delay: 0.25, duration: 0.5 }}
           className="text-center mb-8"
         >
-          <h1 className="text-3xl sm:text-4xl font-bold leading-tight mb-2">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-3">
             When danger surrounds you,{" "}
             <span
               className="bg-clip-text text-transparent"
@@ -135,8 +135,8 @@ export default function EntryScreen() {
               Sentinel shows you the way out.
             </span>
           </h1>
-          <p className="text-slate-400 text-sm leading-relaxed">
-            Live conflict mapping, safe route navigation, nearby resources,<br />
+          <p className="text-slate-400 text-sm sm:text-base leading-relaxed max-w-lg mx-auto">
+            Live conflict mapping, safe route navigation, nearby resources,
             and AI-powered survival guidance — all in one app.
           </p>
         </motion.div>
@@ -146,7 +146,7 @@ export default function EntryScreen() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.38, duration: 0.5 }}
-          className="w-full space-y-3 mb-5"
+          className="w-full max-w-md mx-auto space-y-3 mb-5"
         >
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -188,7 +188,7 @@ export default function EntryScreen() {
               initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="flex items-center gap-2 text-amber-400 text-xs mb-4 bg-amber-400/8 border border-amber-400/15 rounded-xl px-4 py-2.5 w-full"
+              className="flex items-center gap-2 text-amber-400 text-xs mb-4 bg-amber-400/8 border border-amber-400/15 rounded-xl px-4 py-2.5 w-full max-w-md mx-auto"
             >
               <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
               {locError}
@@ -204,7 +204,7 @@ export default function EntryScreen() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.28 }}
-              className="w-full overflow-hidden mb-5"
+              className="w-full max-w-lg mx-auto overflow-hidden mb-5"
             >
               <div
                 className="rounded-2xl p-4"
@@ -213,7 +213,7 @@ export default function EntryScreen() {
                 <p className="text-[10px] text-slate-500 uppercase tracking-[0.2em] font-semibold mb-3">
                   Active conflict zones
                 </p>
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                   {REGIONS.map((region, i) => (
                     <motion.button
                       key={region.id}

@@ -35,6 +35,9 @@ const IntelligenceGlobe = dynamic(
   }
 );
 
+// TODO P2: Conflict heat map visualization on 3D globe
+// TODO P2: Border crossing status pins on globe
+
 export default function GlobePage() {
   // embed=true hides chrome when rendered inside the Intel page iframe
   const isEmbed = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("embed") === "true";

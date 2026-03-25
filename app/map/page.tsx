@@ -48,7 +48,7 @@ function LayerControls() {
   ];
 
   return (
-    <div className="absolute bottom-28 right-3 z-[500]">
+    <div className="absolute bottom-32 right-3 z-[500]">
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
@@ -135,6 +135,9 @@ function MapContent() {
   return <CrisisMap country={viewCountry} />;
 }
 
+// TODO P2: Communication status overlay (cellular/internet/Starlink coverage)
+// TODO P2: Evacuation flight feature — show commercial flights from nearby airports
+
 // ─── Main Map Page ────────────────────────────────────────────────
 export default function MapPage() {
   const visualMode = useAppStore((s) => s.visualMode);
@@ -205,7 +208,7 @@ export default function MapPage() {
         <LayerControls />
 
         {/* Bottom overlay: GET TO SAFETY */}
-        <div className="absolute bottom-0 left-0 right-0 z-[500] pointer-events-none">
+        <div className="absolute bottom-0 left-0 right-0 z-[510] pointer-events-none">
           <div className="pointer-events-auto">
             <div className="h-12 bg-gradient-to-t from-[#0a0f1e]/80 to-transparent" />
             <div className="bg-[#0a0f1e]/85 backdrop-blur-md px-3 pb-2 pt-1">

@@ -21,7 +21,7 @@ export default function VisualModeSelector() {
   const CurrentIcon = current?.icon ?? Sun;
 
   return (
-    <div className="absolute top-3 right-14 z-[500]">
+    <div className="absolute top-3 right-3 z-[500]">
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={() => setOpen(!open)}

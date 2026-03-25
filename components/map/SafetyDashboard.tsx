@@ -84,7 +84,7 @@ export default function SafetyDashboard() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -12 }}
             transition={{ type: "spring", stiffness: 300, damping: 28 }}
-            className="absolute top-3 left-3 right-3 z-[500]"
+            className="absolute top-3 left-3 z-[500] w-[min(calc(100%-110px),360px)]"
           >
             <div
               className="rounded-2xl border border-white/10 bg-[#0a0f1e]/90 backdrop-blur-xl shadow-2xl overflow-hidden"

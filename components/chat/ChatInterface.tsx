@@ -2,9 +2,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Send, Loader2, Bot, Trash2, AlertTriangle, Plane, Activity,
-  MapPin, Car, Phone, Route, Wifi, WifiOff, Wind, Search, Eye,
-  FileWarning, Layers, Navigation, ChevronUp, ChevronDown,
+  Send, Loader2, Bot, Trash2, AlertTriangle,
+  MapPin, Car, Route, Wifi, WifiOff, Wind, Eye,
+  ChevronUp, ChevronDown,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { useAppStore } from "@/store/appStore";
@@ -17,24 +17,18 @@ interface AgentAction {
 }
 
 const QUICK_ACTIONS = [
-  { icon: AlertTriangle, label: "Active threats", prompt: "What are the active threats near my current location right now? Give me a threat assessment." },
-  { icon: Plane,         label: "Aircraft overhead", prompt: "What aircraft are currently in the region? Any military activity I should know about?" },
-  { icon: Activity,      label: "Seismic spikes", prompt: "Are there any recent seismic spikes near me? Could any be related to artillery or explosions?" },
-  { icon: MapPin,        label: "Nearest hospital", prompt: "Where is the nearest hospital or medical facility to my current location? Show it on the map." },
-  { icon: Car,           label: "Evacuation route", prompt: "What is the safest evacuation route from my current location? Calculate a route for me." },
-  { icon: Phone,         label: "Emergency contacts", prompt: "What are the emergency contacts, hotlines, and humanitarian organizations for my region?" },
-  { icon: Wind,          label: "Air quality", prompt: "What is the current air quality at my location? Is it safe to be outside?" },
-  { icon: Search,        label: "Find shelter", prompt: "Find the nearest shelters or safe buildings near my location and show them on the map." },
-  { icon: Eye,           label: "SITREP", prompt: "Give me a full situation report: conflict events, flights, seismic activity, air quality, and news for my area." },
-  { icon: FileWarning,   label: "Report hazard", prompt: "I want to report a hazard at my current location." },
-  { icon: Layers,        label: "Show all layers", prompt: "Enable all map layers so I can see everything: conflict events, reports, resources, and danger zones." },
-  { icon: Navigation,    label: "Night vision mode", prompt: "Switch the map to night vision mode." },
+  { icon: AlertTriangle, label: "Threats near me", prompt: "What threats are near me right now? Check conflict events, military aircraft, thermal hotspots, and seismic activity. Give me a full threat assessment." },
+  { icon: Car,           label: "Safest route out", prompt: "Find the safest route to the nearest border crossing or airport from my current location. Calculate the route and show safety score." },
+  { icon: MapPin,        label: "Hospitals & shelters", prompt: "Show all hospitals, medical facilities, and shelters near my current location on the map." },
+  { icon: Eye,           label: "Full SITREP", prompt: "Generate a full situation report for my area: conflict events, flights, military aircraft, seismic activity, air quality, thermal hotspots, and latest news." },
+  { icon: Route,         label: "Evacuation plan", prompt: "How do I evacuate this region? What are the safest corridors, border crossings, and transportation options available right now?" },
+  { icon: Wind,          label: "Air & weather", prompt: "What's the current air quality at my location? Is it safe to be outside? Any weather hazards I should know about?" },
 ];
 
 const WELCOME: ChatMessage = {
   id: "welcome",
   role: "assistant",
-  content: "I'm your **Sentinel AI** — crisis intelligence at your command.\n\nI can **find shelters & hospitals**, **calculate safe routes**, **check live threats**, **track aircraft**, **get air quality**, and **control the map** — all through conversation.\n\nAsk me anything or use quick actions below.",
+  content: "I'm **Sentinel AI** — your crisis intelligence analyst. My mission is to keep you alive and help you reach safety.\n\nI monitor **live threats**, find **shelters & hospitals**, calculate **safe evacuation routes**, track **military aircraft**, and brief you with **real-time intelligence** — all through conversation.\n\nWhat's your situation?",
   timestamp: new Date(),
 };
 
@@ -52,7 +46,7 @@ function QuickActionsPanel({ expanded: defaultExpanded, onAction }: { expanded: 
         Quick Actions
       </button>
       {open && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
           {QUICK_ACTIONS.map(({ icon: Icon, label, prompt }) => (
             <button
               key={label}

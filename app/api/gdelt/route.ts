@@ -20,6 +20,8 @@ const FEED_URLS = [
   { source: "Reuters", url: "https://feeds.reuters.com/reuters/worldNews" },
   { source: "BBC", url: "http://feeds.bbci.co.uk/news/world/rss.xml" },
   { source: "Al Jazeera", url: "https://www.aljazeera.com/xml/rss/all.xml" },
+  { source: "AP News", url: "https://rsshub.app/apnews/topics/world-news" },
+  { source: "ReliefWeb", url: "https://reliefweb.int/updates/rss.xml" },
 ];
 
 let cache: { articles: RssArticle[]; lastUpdated: string; ts: number } | null = null;
@@ -39,11 +41,11 @@ function pickImage(item: any): string | null {
 
 function classifySeverity(title: string, description: string): FeedSeverity {
   const t = `${title} ${description}`.toLowerCase();
-  if (/\bkilled\b|\bexplosion\b|\battack\b|\bstrike\b|\bwar\b|\bbombing\b|\bshelling\b|\bmassacre\b|\binvasion\b/.test(t))
+  if (/\bkilled\b|\bexplosion\b|\battack\b|\bstrike\b|\bwar\b|\bbombing\b|\bshelling\b|\bmassacre\b|\binvasion\b|\bdeaths?\b|\bdead\b|\bairstrikes?\b|\bcarnage\b|\bgenocide\b/.test(t))
     return "critical";
-  if (/\bmilitary\b|\bconflict\b|\btroops\b|\bweapons\b|\bmissile\b|\bceasefire\b|\boffensive\b|\bcasualties\b/.test(t))
+  if (/\bmilitary\b|\bconflict\b|\btroops\b|\bweapons\b|\bmissile\b|\bceasefire\b|\boffensive\b|\bcasualties\b|\bartillery\b|\bdrone\b|\bfighter\s*jets?\b|\bescalation\b|\bterroris[tm]\b/.test(t))
     return "warning";
-  if (/\bcrisis\b|\bemergency\b|\bdisplacement\b|\bevacuation\b|\bsanctions\b/.test(t))
+  if (/\bcrisis\b|\bemergency\b|\bdisplacement\b|\bevacuation\b|\bsanctions\b|\brefugees?\b|\bhumanitarian\b|\bfamine\b|\bcholera\b|\bflood\b|\bearthquake\b/.test(t))
     return "advisory";
   return "info";
 }
@@ -98,7 +100,7 @@ export async function GET() {
   }
 
   articles.sort((a, b) => parsePubDate(b.pubDate) - parsePubDate(a.pubDate));
-  const top = articles.slice(0, 30);
+  const top = articles.slice(0, 50);
   const lastUpdated = new Date().toISOString();
 
   cache = { articles: top, lastUpdated, ts: Date.now() };

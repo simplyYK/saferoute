@@ -10,6 +10,7 @@ import LocationSearch, { type LocationResult } from "@/components/shared/Locatio
 import AppDrawer from "@/components/navigation/AppDrawer";
 import { SentinelIcon } from "@/components/shared/SentinelLogo";
 import { useMapStore } from "@/store/mapStore";
+import { useAppStore } from "@/store/appStore";
 import { REGIONS } from "@/lib/constants/regions";
 
 interface TopBarProps {
@@ -45,6 +46,7 @@ function RegionPicker() {
   const setViewCountry = useMapStore((s) => s.setViewCountry);
   const setCenter = useMapStore((s) => s.setCenter);
   const flyTo = useMapStore((s) => s.flyTo);
+  const userLocation = useAppStore((s) => s.userLocation);
 
   const currentRegion = REGIONS.find(
     (r) => r.country === viewCountry || r.name === viewCountry
@@ -73,6 +75,23 @@ function RegionPicker() {
               style={{ background: "rgba(13,20,36,0.98)", backdropFilter: "blur(20px)" }}
             >
               <div className="p-1.5">
+                {/* Current Location option */}
+                {userLocation && (
+                  <>
+                    <button
+                      onClick={() => {
+                        setCenter([userLocation.lat, userLocation.lng]);
+                        flyTo([userLocation.lat, userLocation.lng]);
+                        setOpen(false);
+                      }}
+                      className="w-full text-left px-3 py-2 rounded-lg text-xs font-medium text-green-400 hover:bg-green-500/10 transition-all flex items-center gap-1.5"
+                    >
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full" />
+                      My Location
+                    </button>
+                    <div className="border-b border-white/6 my-1" />
+                  </>
+                )}
                 {REGIONS.map((r) => {
                   const active = r.country === viewCountry || r.name === viewCountry;
                   return (

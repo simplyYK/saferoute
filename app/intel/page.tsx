@@ -34,7 +34,7 @@ const GlobeFrame = dynamic(
 
 // ─── Stat Card ───────────────────────────────────────────────────
 function StatCard({
-  icon: Icon, label, value, sub, color, alert, delay
+  icon: Icon, label, value, sub, color, alert, delay, trend
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
@@ -43,6 +43,7 @@ function StatCard({
   color: string;
   alert?: boolean;
   delay?: number;
+  trend?: string;
 }) {
   return (
     <motion.div
@@ -66,7 +67,12 @@ function StatCard({
           </span>
         )}
       </div>
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
+      <div className="flex items-baseline gap-2">
+        <p className={`text-2xl font-bold ${color}`}>{value}</p>
+        {trend && (
+          <span className="text-[10px] font-semibold text-slate-400">{trend}</span>
+        )}
+      </div>
       <p className="text-xs text-white font-medium mt-0.5">{label}</p>
       {sub && <p className="text-[10px] text-slate-500 mt-0.5">{sub}</p>}
     </motion.div>
@@ -104,10 +110,14 @@ function IntelItem({ icon: Icon, title, detail, severity, delay }: {
 }
 
 // ─── SITREP Modal ─────────────────────────────────────────────────
-function SitrepModal({ open, onClose, conflictCount, reportCount, seismicCount, flightCount, milCount }: {
+function SitrepModal({ open, onClose, conflictCount, reportCount, seismicCount, flightCount, milCount, viewCountry, conflicts, reports, seismic }: {
   open: boolean; onClose: () => void;
   conflictCount: number; reportCount: number;
   seismicCount: number; flightCount: number; milCount: number;
+  viewCountry: string;
+  conflicts: { severity?: string }[];
+  reports: { severity?: string }[];
+  seismic: { magnitude: number }[];
 }) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -116,7 +126,10 @@ function SitrepModal({ open, onClose, conflictCount, reportCount, seismicCount, 
     if (!open) return;
     setText("");
     setLoading(true);
-    const prompt = `Generate a concise military-style SITREP for Sentinel crisis platform. Data: ${conflictCount} conflict events, ${reportCount} community reports, ${seismicCount} seismic events (24h), ${flightCount} commercial + ${milCount} military aircraft tracked. Format: THREAT LEVEL · SITUATION SUMMARY · KEY OBSERVATIONS · RECOMMENDED ACTIONS. Under 180 words. Be direct and tactical.`;
+    const prompt = `Generate a concise military-style SITREP for Sentinel crisis platform.
+Region: ${viewCountry}
+Live data: ${conflictCount} conflict events (${conflicts.filter((e) => e.severity === "critical").length} critical), ${reportCount} community reports (${reports.filter((r) => r.severity === "critical").length} critical), ${seismicCount} seismic events last 24h (${seismic.filter((e) => e.magnitude >= 4.0).length} M4+), ${flightCount} commercial + ${milCount} military aircraft tracked.
+Format: THREAT LEVEL · SITUATION SUMMARY · KEY OBSERVATIONS · RECOMMENDED ACTIONS FOR CIVILIANS. Under 200 words. Be direct and tactical. Make it actionable for a civilian in the region.`;
     void (async () => {
       try {
         const res = await fetch("/api/groq", {
@@ -183,6 +196,11 @@ function SitrepModal({ open, onClose, conflictCount, reportCount, seismicCount, 
     </AnimatePresence>
   );
 }
+
+// TODO P2: Weather API integration — add weather card to stats grid
+// TODO P2: UNOCHA ReliefWeb API integration — humanitarian situation data
+// TODO P2: Conflict heat map layer on globe view
+// TODO P2: Border crossing status indicators
 
 // ─── Main Intel Page ──────────────────────────────────────────────
 export default function IntelPage() {
@@ -317,6 +335,7 @@ export default function IntelPage() {
                   sub={`${viewCountry} · Last 30d`}
                   color="text-red-400"
                   alert={conflicts.filter((e) => e.severity === "critical").length > 0}
+                  trend={conflicts.length > 0 ? `${conflicts.filter((e) => e.severity === "critical").length} critical` : undefined}
                   delay={0}
                 />
                 <StatCard
@@ -326,6 +345,7 @@ export default function IntelPage() {
                   sub="Live ADS-B tracking"
                   color="text-orange-400"
                   alert={milAlert}
+                  trend={milAlert ? "↑ Active" : "— Clear"}
                   delay={0.06}
                 />
                 <StatCard
@@ -335,6 +355,7 @@ export default function IntelPage() {
                   sub={`${seismic.filter((e) => e.magnitude >= 4.0).length} significant (M4+)`}
                   color="text-yellow-400"
                   alert={seismicAlert}
+                  trend={seismicAlert ? "↑ Alert" : undefined}
                   delay={0.12}
                 />
                 <StatCard
@@ -343,13 +364,14 @@ export default function IntelPage() {
                   value={reports.length}
                   sub="Community intel"
                   color="text-teal"
+                  trend={reports.filter((r) => r.severity === "critical").length > 0 ? `${reports.filter((r) => r.severity === "critical").length} critical` : undefined}
                   delay={0.18}
                 />
                 <StatCard
                   icon={Plane}
                   label="Civil Aviation"
                   value={commercial.length}
-                  sub="Commercial flights"
+                  sub={commercial.length > 0 ? "Airspace operational" : "No flights tracked"}
                   color="text-blue-400"
                   delay={0.24}
                 />
@@ -365,6 +387,13 @@ export default function IntelPage() {
               </div>
 
               {/* Intelligence feed */}
+              {feedItems.length === 0 && (
+                <div className="bg-white/3 border border-white/6 rounded-2xl p-8 text-center">
+                  <Activity className="w-8 h-8 text-slate-600 mx-auto mb-3" />
+                  <p className="text-sm text-slate-400 font-medium">No intelligence events detected</p>
+                  <p className="text-xs text-slate-500 mt-1">Monitoring {viewCountry} · Data refreshes automatically</p>
+                </div>
+              )}
               {feedItems.length > 0 && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -462,6 +491,10 @@ export default function IntelPage() {
         seismicCount={seismic.length}
         flightCount={commercial.length}
         milCount={military.length}
+        viewCountry={viewCountry}
+        conflicts={conflicts}
+        reports={reports}
+        seismic={seismic}
       />
     </div>
   );
