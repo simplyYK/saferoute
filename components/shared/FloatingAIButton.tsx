@@ -146,8 +146,22 @@ function VoiceTab() {
         </div>
       </div>
 
-      {/* ElevenLabs widget — renders the orb UI */}
+      {/* ElevenLabs widget — centered in our UI */}
       <div ref={widgetRef} className="px-6 pb-6 flex justify-center">
+        <style dangerouslySetInnerHTML={{ __html: `
+          /* Override ElevenLabs default floating position to be inline */
+          elevenlabs-convai {
+            position: relative !important;
+            bottom: auto !important;
+            right: auto !important;
+            z-index: 1 !important;
+          }
+          elevenlabs-convai::part(widget) {
+            position: relative !important;
+            bottom: auto !important;
+            right: auto !important;
+          }
+        `}} />
         <div
           dangerouslySetInnerHTML={{
             __html: `<elevenlabs-convai agent-id="${agentId}" dynamic-variables='{"lat":"${lat}","lng":"${lng}","country":"${viewCountry}"}'></elevenlabs-convai>`,
@@ -174,8 +188,16 @@ export default function FloatingAIButton() {
       setTab("chat");
       setOpen(true);
     };
+    const voiceHandler = () => {
+      setTab("voice");
+      setOpen(true);
+    };
     window.addEventListener("sentinel:open-ai", handler);
-    return () => window.removeEventListener("sentinel:open-ai", handler);
+    window.addEventListener("sentinel:open-voice", voiceHandler);
+    return () => {
+      window.removeEventListener("sentinel:open-ai", handler);
+      window.removeEventListener("sentinel:open-voice", voiceHandler);
+    };
   }, []);
 
   useEffect(() => {

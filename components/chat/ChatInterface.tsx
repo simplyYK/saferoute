@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import dynamic from "next/dynamic";
+// dynamic import removed — VoiceMode now in FloatingAIButton
 import {
   Send, Loader2, Bot, Trash2, AlertTriangle,
   MapPin, Car, Route, Wifi, WifiOff, Wind, Eye,
@@ -12,7 +12,7 @@ import { useAppStore } from "@/store/appStore";
 import { useMapStore } from "@/store/mapStore";
 import type { ChatMessage } from "@/types/map";
 
-const VoiceMode = dynamic(() => import("@/components/chat/VoiceMode"), { ssr: false });
+// Voice mode is now handled by the FloatingAIButton Voice tab
 
 interface AgentAction {
   action: string;
@@ -146,7 +146,7 @@ export default function ChatInterface({ className = "", initialPrompt }: { class
   const [loading, setLoading] = useState(false);
   const [seismicCount, setSeismicCount] = useState(0);
   const [actionLog, setActionLog] = useState<string[]>([]);
-  const [voiceOpen, setVoiceOpen] = useState(false);
+  // voiceOpen removed — voice is handled by FloatingAIButton Voice tab
   const scrollRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -396,7 +396,7 @@ export default function ChatInterface({ className = "", initialPrompt }: { class
         />
         <button
           type="button"
-          onClick={() => setVoiceOpen(true)}
+          onClick={() => window.dispatchEvent(new CustomEvent("sentinel:open-voice"))}
           className="bg-white/5 border border-white/10 hover:border-teal/40 hover:bg-teal/10 text-slate-400 hover:text-teal p-3 rounded-xl min-w-[48px] min-h-[48px] flex items-center justify-center transition-colors"
           aria-label="Voice mode"
         >
@@ -412,7 +412,7 @@ export default function ChatInterface({ className = "", initialPrompt }: { class
           <Send className="w-4 h-4" />
         </button>
       </div>
-      <VoiceMode open={voiceOpen} onClose={() => setVoiceOpen(false)} />
+      {/* Voice mode handled by FloatingAIButton */}
     </div>
   );
 }
