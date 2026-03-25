@@ -392,6 +392,26 @@ const IntelligenceGlobe = forwardRef<IntelligenceGlobeHandle, IntelligenceGlobeP
       satellites,
     ]);
 
+    // Fly globe to centroid of conflict data when it changes significantly
+    const prevConflictCount = useRef(conflictFeatures.length);
+    useEffect(() => {
+      const globe = globeRef.current;
+      if (!globe || conflictFeatures.length === 0) return;
+      // Only fly if the data meaningfully changed (new country loaded)
+      if (Math.abs(conflictFeatures.length - prevConflictCount.current) < 2) return;
+      prevConflictCount.current = conflictFeatures.length;
+
+      // Compute centroid of conflict events
+      let latSum = 0, lngSum = 0;
+      for (const f of conflictFeatures) {
+        latSum += f.geometry.coordinates[1];
+        lngSum += f.geometry.coordinates[0];
+      }
+      const lat = latSum / conflictFeatures.length;
+      const lng = lngSum / conflictFeatures.length;
+      globe.pointOfView({ lat, lng, altitude: 2.0 }, 1200);
+    }, [conflictFeatures]);
+
     return (
       <div ref={containerRef} className="absolute inset-0 w-full h-full min-h-0" />
     );

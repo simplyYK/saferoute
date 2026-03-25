@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -76,16 +76,26 @@ function FlyToHandler() {
 }
 
 function MapEvents() {
-  const { setCenter, setZoom, setBounds } = useMapStore();
+  const setCenter = useMapStore((s) => s.setCenter);
+  const setZoom = useMapStore((s) => s.setZoom);
+  const setBounds = useMapStore((s) => s.setBounds);
   const map = useMap();
+  const lastCenter = useRef<[number, number]>([0, 0]);
 
   useMapEvents({
     moveend() {
       const c = map.getCenter();
-      setCenter([c.lat, c.lng]);
-      setZoom(map.getZoom());
-      const b = map.getBounds();
-      setBounds({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() });
+      // Only update store if center moved meaningfully (prevents infinite loop
+      // where setCenter triggers re-render which triggers moveend again)
+      const dx = Math.abs(c.lat - lastCenter.current[0]);
+      const dy = Math.abs(c.lng - lastCenter.current[1]);
+      if (dx > 0.0001 || dy > 0.0001) {
+        lastCenter.current = [c.lat, c.lng];
+        setCenter([c.lat, c.lng]);
+        setZoom(map.getZoom());
+        const b = map.getBounds();
+        setBounds({ south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() });
+      }
     },
   });
   return null;
