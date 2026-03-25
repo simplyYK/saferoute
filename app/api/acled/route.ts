@@ -147,7 +147,19 @@ function getSeedData(country: string) {
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const country = searchParams.get("country") || "Ukraine";
+  let country = searchParams.get("country") || "Ukraine";
+
+  // "My Location" is not a valid ACLED country — return empty instead of erroring
+  if (country === "My Location") {
+    return NextResponse.json({
+      type: "FeatureCollection",
+      features: [],
+      cached: false,
+      count: 0,
+      source: "none",
+      note: "Select a specific country/region to see conflict data",
+    });
+  }
 
   if (cache && cache.country === country && Date.now() - cache.timestamp < CACHE_TTL_MS) {
     return NextResponse.json({ type: "FeatureCollection", features: cache.data, cached: true, count: cache.data.length });
@@ -202,10 +214,21 @@ export async function GET(request: NextRequest) {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (!res.ok) throw new Error(`ACLED OAuth ${res.status}`);
+
+    // Guard against HTML error pages — check content-type before parsing
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      throw new Error(`ACLED returned non-JSON (${contentType})`);
+    }
+
     const json = await res.json();
-    const features = toGeoJSON(json.data || []);
+    if (json.message || json.error) {
+      throw new Error(`ACLED API error: ${json.message || json.error}`);
+    }
+    const events = json.data || json;
+    const features = toGeoJSON(Array.isArray(events) ? events : []);
     cache = { data: features, timestamp: Date.now(), country };
-    return NextResponse.json({ type: "FeatureCollection", features, cached: false, count: features.length });
+    return NextResponse.json({ type: "FeatureCollection", features, cached: false, count: features.length, source: "acled" });
   } catch (err) {
     console.error("[ACLED OAuth]", err);
     if (cache && cache.country === country) {
