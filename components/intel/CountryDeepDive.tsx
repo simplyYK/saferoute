@@ -39,15 +39,20 @@ export default function CountryDeepDive({
   open,
   onClose,
   viewCountry,
+  resolvedCountry,
+  resolvedIso3,
 }: {
   open: boolean;
   onClose: () => void;
   viewCountry: string;
+  resolvedCountry?: string;
+  resolvedIso3?: string;
 }) {
+  const displayCountry = resolvedCountry || viewCountry;
   const region = REGIONS.find(
-    (r) => r.country === viewCountry || r.name === viewCountry
+    (r) => r.country === displayCountry || r.name === displayCountry
   );
-  const iso3 = region?.iso3 || "";
+  const iso3 = resolvedIso3 || region?.iso3 || "";
   const { nationalRisk, idps, funding, humanNeeds, conflictEvents, loading } = useHumanitarianData(iso3);
 
   const totalIDPs = idps.reduce((sum, d) => sum + (d.population || 0), 0);
@@ -90,7 +95,7 @@ export default function CountryDeepDive({
               <div className="flex items-center gap-2">
                 <BarChart3 className="w-4 h-4 text-teal" />
                 <span className="font-bold text-white tracking-wide text-sm">COUNTRY DEEP DIVE</span>
-                <span className="text-[10px] text-teal uppercase tracking-widest font-semibold">{viewCountry}</span>
+                <span className="text-[10px] text-teal uppercase tracking-widest font-semibold">{displayCountry}</span>
               </div>
               <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/8 transition-all">
                 <X className="w-4 h-4" />
@@ -105,7 +110,7 @@ export default function CountryDeepDive({
                 </div>
               ) : !iso3 ? (
                 <div className="text-center py-12">
-                  <p className="text-sm text-slate-400">No ISO3 code mapped for &quot;{viewCountry}&quot;</p>
+                  <p className="text-sm text-slate-400">No ISO3 code mapped for &quot;{displayCountry}&quot;</p>
                   <p className="text-xs text-slate-500 mt-1">Humanitarian data requires a recognized country region.</p>
                 </div>
               ) : (

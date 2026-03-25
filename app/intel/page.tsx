@@ -9,6 +9,7 @@ import { useReports } from "@/hooks/useReports";
 import { useFlights } from "@/hooks/useFlights";
 import { useSeismic } from "@/hooks/useSeismic";
 import { useConflictData } from "@/hooks/useConflictData";
+import { useResolvedCountry } from "@/hooks/useResolvedCountry";
 import { useWeather } from "@/hooks/useWeather";
 import { useAppStore } from "@/store/appStore";
 import { useMapStore } from "@/store/mapStore";
@@ -219,11 +220,13 @@ Format: THREAT LEVEL · SITUATION SUMMARY · KEY OBSERVATIONS · RECOMMENDED ACT
 // ─── Main Intel Page ──────────────────────────────────────────────
 export default function IntelPage() {
   const viewCountry = useMapStore((s) => s.viewCountry);
+  const { country: resolvedCountry, iso3: resolvedIso3, resolving: countryResolving } = useResolvedCountry();
+  const effectiveCountry = viewCountry === "My Location" ? resolvedCountry : viewCountry;
   const layers = useMapStore((s) => s.globeLayers);
   const toggleGlobeLayer = useMapStore((s) => s.toggleGlobeLayer);
 
   const { reports } = useReports();
-  const { events: conflicts, loading: conflictsLoading } = useConflictData(viewCountry);
+  const { events: conflicts, loading: conflictsLoading } = useConflictData(effectiveCountry);
   const { commercial, military, loading: flightsLoading } = useFlights(true);
   const { events: seismic, loading: seismicLoading } = useSeismic(true);
   const { weather, loading: weatherLoading } = useWeather();
@@ -247,7 +250,7 @@ export default function IntelPage() {
       items.push({ icon: Activity, title: `M${strong[0]?.magnitude.toFixed(1)} Seismic Event`, detail: "Strong seismic activity — may indicate artillery or natural hazard", severity: "high" });
     }
     if (conflicts.filter((e) => e.severity === "critical").length > 0) {
-      items.push({ icon: AlertTriangle, title: `${conflicts.filter((e) => e.severity === "critical").length} Critical Conflict Events`, detail: `Active armed conflict recorded in ${viewCountry}`, severity: "critical" });
+      items.push({ icon: AlertTriangle, title: `${conflicts.filter((e) => e.severity === "critical").length} Critical Conflict Events`, detail: `Active armed conflict recorded in ${effectiveCountry}`, severity: "critical" });
     }
     if (commercial.length > 0) {
       items.push({ icon: Plane, title: `${commercial.length} Commercial Flights Active`, detail: "Civilian airspace operational — no immediate closure", severity: "normal" });
@@ -256,7 +259,7 @@ export default function IntelPage() {
       items.push({ icon: Radio, title: `${reports.length} Community Reports`, detail: "Crowdsourced intel from field reporters", severity: reports.filter((r) => r.severity === "critical").length > 0 ? "high" : "normal" });
     }
     return items.slice(0, 6);
-  }, [military, seismic, conflicts, commercial, reports, milAlert, seismicAlert, viewCountry]);
+  }, [military, seismic, conflicts, commercial, reports, milAlert, seismicAlert, effectiveCountry]);
 
   const GLOBE_LAYERS = [
     { key: "conflict" as const, label: "Conflict Events", icon: AlertTriangle, color: "text-red-400" },
@@ -276,7 +279,7 @@ export default function IntelPage() {
         <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 border-b border-white/6 shrink-0 gap-2">
           <div className="min-w-0">
             <h1 className="text-xs sm:text-sm font-bold text-white tracking-wide truncate">
-              THREAT INTEL — <span className="text-teal">{viewCountry.toUpperCase()}</span>
+              THREAT INTEL — <span className="text-teal">{effectiveCountry.toUpperCase()}</span>
             </h1>
             <p className="text-[10px] text-slate-500 uppercase tracking-wider hidden sm:block">Live multi-source fusion</p>
           </div>
@@ -358,7 +361,7 @@ export default function IntelPage() {
                   icon={AlertTriangle}
                   label="Conflict Events"
                   value={conflicts.length}
-                  sub={`${viewCountry} · Last 30d`}
+                  sub={`${effectiveCountry} · Last 30d`}
                   color="text-red-400"
                   alert={conflicts.filter((e) => e.severity === "critical").length > 0}
                   trend={conflicts.length > 0 ? `${conflicts.filter((e) => e.severity === "critical").length} critical` : undefined}
@@ -428,7 +431,7 @@ export default function IntelPage() {
                 <div className="bg-white/3 border border-white/6 rounded-2xl p-8 text-center">
                   <Activity className="w-8 h-8 text-slate-600 mx-auto mb-3" />
                   <p className="text-sm text-slate-400 font-medium">No intelligence events detected</p>
-                  <p className="text-xs text-slate-500 mt-1">Monitoring {viewCountry} · Data refreshes automatically</p>
+                  <p className="text-xs text-slate-500 mt-1">Monitoring {effectiveCountry} · Data refreshes automatically</p>
                 </div>
               )}
               {feedItems.length > 0 && (
@@ -528,7 +531,7 @@ export default function IntelPage() {
         seismicCount={seismic.length}
         flightCount={commercial.length}
         milCount={military.length}
-        viewCountry={viewCountry}
+        viewCountry={effectiveCountry}
         conflicts={conflicts}
         reports={reports}
         seismic={seismic}
@@ -537,6 +540,8 @@ export default function IntelPage() {
         open={deepDiveOpen}
         onClose={() => setDeepDiveOpen(false)}
         viewCountry={viewCountry}
+        resolvedCountry={viewCountry === "My Location" ? resolvedCountry : undefined}
+        resolvedIso3={viewCountry === "My Location" ? resolvedIso3 : undefined}
       />
     </div>
   );
