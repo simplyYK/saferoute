@@ -2,12 +2,27 @@ import { supabase, isSupabaseConfigured } from "./client";
 import type { Report, CreateReportInput } from "@/types/report";
 
 export async function createReport(input: CreateReportInput): Promise<Report> {
-  if (!isSupabaseConfigured) throw new Error("Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local");
-  const { data, error } = await supabase
-    .from("reports")
-    .insert(input)
-    .select()
-    .single();
+  if (!isSupabaseConfigured) {
+    throw new Error(
+      "Supabase is not configured. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local"
+    );
+  }
+  const row = {
+    category: input.category,
+    severity: input.severity,
+    title: input.title,
+    description: input.description ?? null,
+    latitude: input.latitude,
+    longitude: input.longitude,
+    location_name: input.location_name ?? null,
+    reporter_id: input.reporter_id,
+    language: input.language ?? "en",
+    expires_at: input.expires_at,
+    status: input.status ?? "active",
+    confirmations: input.confirmations ?? 0,
+    denials: input.denials ?? 0,
+  };
+  const { data, error } = await supabase.from("reports").insert(row).select().single();
   if (error) throw new Error(error.message);
   return data as Report;
 }

@@ -45,22 +45,30 @@ export default function BottomNav() {
   }, [desktop]);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[1000] bg-navy/95 backdrop-blur border-t border-white/10 flex pb-safe">
+    <nav className="fixed bottom-0 left-0 right-0 z-[1000] bg-navy/95 backdrop-blur border-t border-white/10 flex pb-safe px-0.5">
       {tabs.map(({ href, icon: Icon, label }) => {
         const active =
           pathname === href ||
           (label === "Globe" && !desktop && pathname === "/globe");
+        const short =
+          label === "AI Help"
+            ? "AI"
+            : label === "Resources"
+              ? "Resources"
+              : label;
         return (
           <Link
             key={label === "Globe" ? "nav-globe" : href}
             href={href}
-            className={`flex-1 flex flex-col items-center justify-center py-2 gap-0.5 min-h-[56px] transition-colors ${
+            className={`flex-1 min-w-0 flex flex-col items-center justify-center py-1.5 gap-0 min-h-[52px] transition-colors touch-manipulation ${
               active ? "text-teal" : "text-slate-400 hover:text-slate-200"
             }`}
             aria-current={active ? "page" : undefined}
           >
-            <Icon className="w-5 h-5" />
-            <span className="text-[10px] font-medium">{label}</span>
+            <Icon className="w-[18px] h-[18px] sm:w-5 sm:h-5 shrink-0" />
+            <span className="text-[8px] sm:text-[10px] font-medium leading-tight text-center px-0.5 max-w-full truncate">
+              {short}
+            </span>
           </Link>
         );
       })}

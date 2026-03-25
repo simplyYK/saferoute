@@ -40,10 +40,14 @@ export interface CreateReportInput {
   category: ReportCategory;
   severity: SeverityLevel;
   title: string;
-  description?: string;
+  description?: string | null;
   latitude: number;
   longitude: number;
-  location_name?: string;
+  location_name?: string | null;
   reporter_id: string;
   language?: string;
+  expires_at?: string;
+  status?: "active" | "expired" | "resolved" | "false_report";
+  confirmations?: number;
+  denials?: number;
 }

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import OfflineBanner from "@/components/layout/OfflineBanner";
 
 export const metadata: Metadata = {
   title: "SafeRoute — Crisis Navigation Platform",
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="font-sans antialiased bg-slate-50 text-slate-900">
+        <OfflineBanner />
         {children}
       </body>
     </html>

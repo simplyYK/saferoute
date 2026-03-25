@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type CSSProperties } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -63,14 +63,12 @@ function MapEvents() {
 function UserLocationMarker() {
   const map = useMap();
   const { latitude, longitude } = useGeolocation();
-  const { setUserLocation } = useMapStore() as unknown as { setUserLocation: (l: { lat: number; lng: number }) => void };
 
   useEffect(() => {
     if (latitude && longitude) {
       map.flyTo([latitude, longitude], 13, { animate: true, duration: 1.5 });
-      if (setUserLocation) setUserLocation({ lat: latitude, lng: longitude });
     }
-  }, [latitude, longitude, map, setUserLocation]);
+  }, [latitude, longitude, map]);
 
   if (!latitude || !longitude) return null;
 
@@ -154,6 +152,22 @@ function ReportMarkers({ reports }: { reports: Report[] }) {
   );
 }
 
+function FitRouteBounds() {
+  const { selectedRoute } = useMapStore();
+  const map = useMap();
+
+  useEffect(() => {
+    if (!selectedRoute?.geometry?.coordinates?.length) return;
+    const coords = selectedRoute.geometry.coordinates.map(([lng, lat]) =>
+      L.latLng(lat, lng)
+    );
+    if (coords.length === 0) return;
+    map.fitBounds(L.latLngBounds(coords), { padding: [48, 48], maxZoom: 15, animate: true });
+  }, [selectedRoute?.id, map]);
+
+  return null;
+}
+
 function RouteLayer() {
   const { selectedRoute, routes } = useMapStore();
 
@@ -186,9 +200,11 @@ function RouteLayer() {
 interface CrisisMapProps {
   onMapClick?: (lat: number, lng: number) => void;
   country?: string;
+  /** Overrides default height; parent should set explicit height when used */
+  mapStyle?: CSSProperties;
 }
 
-export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
+export default function CrisisMap({ country = "Ukraine", mapStyle }: CrisisMapProps) {
   const { center, zoom, activeLayers, selectedRoute, routes } = useMapStore();
   const { reports } = useReports();
   const { events } = useConflictData(country);
@@ -198,12 +214,17 @@ export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
     center[1] || MAP_CONFIG.DEFAULT_LNG,
   ];
 
+  const defaultStyle: React.CSSProperties = {
+    width: "100%",
+    height: "calc(100vh - 7rem)",
+  };
+
   return (
     <MapContainer
       center={defaultCenter}
       zoom={zoom || MAP_CONFIG.DEFAULT_ZOOM}
       zoomControl={false}
-      style={{ width: "100%", height: "calc(100vh - 7rem)" }}
+      style={mapStyle ? { width: "100%", height: "100%", ...mapStyle } : defaultStyle}
       minZoom={MAP_CONFIG.MIN_ZOOM}
       maxZoom={MAP_CONFIG.MAX_ZOOM}
     >
@@ -219,7 +240,12 @@ export default function CrisisMap({ country = "Ukraine" }: CrisisMapProps) {
       {activeLayers.conflictEvents && <ConflictMarkers events={events} />}
       {activeLayers.reports && <ReportMarkers reports={reports} />}
 
-      {(selectedRoute || routes.length > 0) && <RouteLayer />}
+      {(selectedRoute || routes.length > 0) && (
+        <>
+          <FitRouteBounds />
+          <RouteLayer />
+        </>
+      )}
     </MapContainer>
   );
 }

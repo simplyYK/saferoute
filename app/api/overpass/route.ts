@@ -1,40 +1,65 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { Resource, ResourceType } from "@/types/resource";
 
-const queryCache = new Map<string, { data: unknown[]; timestamp: number }>();
-const CACHE_TTL_MS = 60 * 60 * 1000;
+const queryCache = new Map<string, { data: Resource[]; timestamp: number }>();
+const CACHE_TTL_MS = 30 * 60 * 1000;
 
-const OVERPASS_TAGS: Record<string, string> = {
-  hospital: 'node["amenity"="hospital"]',
-  clinic: 'node["amenity"="clinic"]',
-  pharmacy: 'node["amenity"="pharmacy"]',
-  shelter: '(node["amenity"="shelter"];node["building"="bunker"];)',
-  police: 'node["amenity"="police"]',
-  fire_station: 'node["amenity"="fire_station"]',
-  embassy: 'node["amenity"="embassy"]',
-  water_point: 'node["amenity"="drinking_water"]',
-};
+function mapAmenity(amenity: string | undefined): ResourceType {
+  switch (amenity) {
+    case "hospital":
+      return "hospital";
+    case "shelter":
+      return "shelter";
+    case "pharmacy":
+      return "pharmacy";
+    case "water_point":
+    case "drinking_water":
+      return "water_point";
+    case "police":
+      return "police_station";
+    case "fire_station":
+      return "fire_station";
+    default:
+      return "hospital";
+  }
+}
+
+function buildAroundQuery(lat: number, lng: number): string {
+  return `[out:json][timeout:15];
+(
+  node["amenity"="hospital"](around:5000,${lat},${lng});
+  node["amenity"="shelter"](around:5000,${lat},${lng});
+  node["amenity"="pharmacy"](around:5000,${lat},${lng});
+  node["amenity"="water_point"](around:5000,${lat},${lng});
+  node["amenity"="drinking_water"](around:5000,${lat},${lng});
+  node["amenity"="police"](around:5000,${lat},${lng});
+  node["amenity"="fire_station"](around:5000,${lat},${lng});
+);
+out body;`;
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
-  const type = searchParams.get("type") || "hospital";
-  const south = searchParams.get("south");
-  const west = searchParams.get("west");
-  const north = searchParams.get("north");
-  const east = searchParams.get("east");
+  const latStr = searchParams.get("lat");
+  const lngStr = searchParams.get("lng");
 
-  if (!south || !west || !north || !east) {
-    return NextResponse.json({ error: "Missing bbox parameters" }, { status: 400 });
+  if (!latStr || !lngStr) {
+    return NextResponse.json({ error: "Missing lat and lng", resources: [] }, { status: 400 });
   }
 
-  const bbox = `${south},${west},${north},${east}`;
-  const cacheKey = `${type}-${bbox}`;
+  const lat = parseFloat(latStr);
+  const lng = parseFloat(lngStr);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return NextResponse.json({ error: "Invalid lat or lng", resources: [] }, { status: 400 });
+  }
+
+  const cacheKey = `${lat.toFixed(3)},${lng.toFixed(3)}`;
   const cached = queryCache.get(cacheKey);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL_MS) {
     return NextResponse.json({ resources: cached.data, cached: true, count: cached.data.length });
   }
 
-  const tag = OVERPASS_TAGS[type] || `node["amenity"="${type}"]`;
-  const query = `[out:json][timeout:25];${tag}(${bbox});out body;`;
+  const query = buildAroundQuery(lat, lng);
 
   try {
     const res = await fetch("https://overpass-api.de/api/interpreter", {
@@ -45,34 +70,47 @@ export async function GET(request: NextRequest) {
     if (!res.ok) throw new Error(`Overpass ${res.status}`);
     const json = await res.json();
 
-    const resources = (json.elements || []).map((el: {
-      id: number;
-      lat: number;
-      lon: number;
-      tags: Record<string, string>;
-    }) => {
-      const tags = el.tags || {};
-      return {
-        id: `osm-${el.id}`,
-        type: tags.amenity || type,
-        name: tags.name || tags["name:en"] || `${type} #${el.id}`,
-        latitude: el.lat,
-        longitude: el.lon,
-        phone: tags.phone || tags["contact:phone"] || null,
-        website: tags.website || null,
-        address: [tags["addr:street"], tags["addr:housenumber"], tags["addr:city"]].filter(Boolean).join(", ") || null,
-        operating_hours: tags.opening_hours || null,
-        status: "unknown",
-        verified: false,
-        source: "osm",
-        services: [],
-      };
-    });
+    const now = new Date().toISOString();
+    const resources: Resource[] = (json.elements || []).map(
+      (el: {
+        id: number;
+        lat: number;
+        lon: number;
+        tags?: Record<string, string>;
+      }) => {
+        const tags = el.tags || {};
+        const amenity = tags.amenity || "hospital";
+        const type = mapAmenity(amenity);
+        return {
+          id: `osm-${el.id}`,
+          type,
+          name: tags.name || tags["name:en"] || `${amenity} #${el.id}`,
+          description: null,
+          latitude: el.lat,
+          longitude: el.lon,
+          phone: tags.phone || tags["contact:phone"] || null,
+          website: tags.website || null,
+          address:
+            [tags["addr:street"], tags["addr:housenumber"], tags["addr:city"]].filter(Boolean).join(", ") ||
+            null,
+          operating_hours: tags.opening_hours || null,
+          status: "unknown" as const,
+          verified: false,
+          source: "osm",
+          services: [],
+          capacity: null,
+          current_occupancy: null,
+          created_at: now,
+          updated_at: now,
+          tags,
+        };
+      }
+    );
 
     queryCache.set(cacheKey, { data: resources, timestamp: Date.now() });
-    if (queryCache.size > 50) {
-      const oldestKey = queryCache.keys().next().value;
-      if (oldestKey) queryCache.delete(oldestKey);
+    if (queryCache.size > 40) {
+      const first = queryCache.keys().next().value;
+      if (first) queryCache.delete(first);
     }
 
     return NextResponse.json({ resources, cached: false, count: resources.length });

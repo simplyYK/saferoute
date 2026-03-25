@@ -41,4 +41,6 @@ export interface Resource {
   distance_km?: number;
   created_at: string;
   updated_at: string;
+  /** Raw OSM tags when sourced from Overpass */
+  tags?: Record<string, string>;
 }

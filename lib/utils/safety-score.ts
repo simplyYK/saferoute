@@ -28,6 +28,10 @@ export function calculateSafetyScore(
 ): number {
   if (coordinates.length === 0) return 50;
 
+  if (conflictEvents.length === 0 && reports.length === 0) {
+    return 75;
+  }
+
   let totalPenalty = 0;
   const sampleRate = Math.max(1, Math.floor(coordinates.length / 50));
   const sampled = coordinates.filter((_, i) => i % sampleRate === 0);

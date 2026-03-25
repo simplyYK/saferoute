@@ -25,6 +25,7 @@ export interface RouteData {
     distance: number;
     duration: number;
     name: string;
+    maneuver?: { type: string; modifier?: string };
   }>;
   safetyScore: number;
 }

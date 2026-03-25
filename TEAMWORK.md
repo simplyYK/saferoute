@@ -584,7 +584,7 @@ STEP 7 — Deploy to Vercel:
   
   Share the Vercel URL in the team chat.
 
-Fix TypeScript errors. Ensure npm run build passes clean. Commit and push.
+Fix TypeScript errors. Ensure npm run build passes clean.
 ```
 
 ---

@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <circle cx="256" cy="256" r="256" fill="#1B2A4A"/>
+  <path
+    d="M256 74L118 138v128c0 96 64 154 138 170 74-16 138-74 138-170V138L256 74z"
+    fill="#F8FAFC"
+    stroke="#0EA5E9"
+    stroke-width="10"
+  />
+  <text
+    x="256"
+    y="292"
+    text-anchor="middle"
+    font-family="system-ui, -apple-system, Segoe UI, sans-serif"
+    font-size="120"
+    font-weight="700"
+    fill="#0EA5E9"
+  >SR</text>
+</svg>
