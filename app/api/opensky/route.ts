@@ -38,8 +38,13 @@ function mapState(row: (string | number | boolean | null)[]): Flight | null {
   };
 }
 
-async function fetchOpensky(): Promise<Flight[]> {
-  const url = "https://opensky-network.org/api/states/all";
+async function fetchOpensky(lat?: number, lng?: number): Promise<Flight[]> {
+  let url = "https://opensky-network.org/api/states/all";
+  // If center provided, use bounding box (±5 degrees ≈ 500km)
+  if (lat != null && lng != null) {
+    const r = 5;
+    url += `?lamin=${lat - r}&lomin=${lng - r}&lamax=${lat + r}&lomax=${lng + r}`;
+  }
   const user = process.env.OPENSKY_USERNAME;
   const pass = process.env.OPENSKY_PASSWORD;
   const headers: HeadersInit = { Accept: "application/json" };
@@ -63,8 +68,12 @@ async function fetchOpensky(): Promise<Flight[]> {
   return out;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url);
+    const lat = searchParams.has("lat") ? parseFloat(searchParams.get("lat")!) : undefined;
+    const lng = searchParams.has("lng") ? parseFloat(searchParams.get("lng")!) : undefined;
+
     const ip = await getClientIp();
     const now = Date.now();
 
@@ -78,7 +87,7 @@ export async function GET() {
     }
 
     openskyMarkRequested(ip);
-    const data = await fetchOpensky();
+    const data = await fetchOpensky(lat, lng);
     cache = { at: Date.now(), data };
     return NextResponse.json(data);
   } catch {

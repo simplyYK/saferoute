@@ -222,7 +222,8 @@ export default function IntelPage() {
   const { reports } = useReports();
   const { events: conflicts, loading: conflictsLoading } = useConflictData(effectiveCountry);
   const { stats: conflictStats, loading: statsLoading } = useConflictStats(effectiveCountry);
-  const { commercial, military, loading: flightsLoading } = useFlights(true);
+  const mapCenter = useMapStore((s) => s.center);
+  const { commercial, military, loading: flightsLoading } = useFlights(true, mapCenter);
   const { events: seismic, loading: seismicLoading } = useSeismic(true);
   const { satellites } = useSatellites(layers.satellites);
   const { weather, loading: weatherLoading } = useWeather();

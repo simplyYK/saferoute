@@ -89,4 +89,17 @@ export function useResourceLayers() {
       prevBoundsRef.current = bounds;
     }
   }, [bounds]);
+
+  // Listen for refresh event — clear cache and re-fetch active layers
+  useEffect(() => {
+    const handler = () => {
+      fetchedRef.current.clear();
+      const layerKeys = ["hospitals", "pharmacies", "shelters", "police", "water"] as const;
+      for (const key of layerKeys) {
+        if (activeLayers[key]) void fetchLayer(key);
+      }
+    };
+    window.addEventListener("saferoute:refresh", handler);
+    return () => window.removeEventListener("saferoute:refresh", handler);
+  }, [activeLayers, fetchLayer]);
 }

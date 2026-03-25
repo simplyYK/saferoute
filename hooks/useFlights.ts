@@ -48,7 +48,7 @@ function dedupeMerge(opensky: Flight[], adsb: Flight[]): Flight[] {
   return [...map.values()].map(markMilitary);
 }
 
-export function useFlights(enabled: boolean) {
+export function useFlights(enabled: boolean, center?: [number, number]) {
   const [commercial, setCommercial] = useState<Flight[]>([]);
   const [military, setMilitary] = useState<Flight[]>([]);
   const [loading, setLoading] = useState(false);
@@ -62,9 +62,11 @@ export function useFlights(enabled: boolean) {
       return;
     }
     setLoading(true);
+    // Pass center coordinates to APIs so they return regional data
+    const params = center ? `?lat=${center[0]}&lng=${center[1]}` : "";
     const [o, a] = await Promise.all([
-      fetchJsonArray("/api/opensky"),
-      fetchJsonArray("/api/adsb"),
+      fetchJsonArray(`/api/opensky${params}`),
+      fetchJsonArray(`/api/adsb${params}`),
     ]);
     if (!mounted.current) return;
     const merged = dedupeMerge(o, a);
@@ -74,13 +76,11 @@ export function useFlights(enabled: boolean) {
     setCommercial(civ);
     setLastUpdated(new Date());
     setLoading(false);
-  }, [enabled]);
+  }, [enabled, center?.[0], center?.[1]]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
+    return () => { mounted.current = false; };
   }, []);
 
   useEffect(() => {

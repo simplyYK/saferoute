@@ -106,6 +106,16 @@ export function useRiskIntelligence(): RiskIntelligenceState {
     }
   }, [userLocation, viewCountry, mapCenter]);
 
+  // Reset GSI when country changes so dashboard shows loading state
+  const prevCountry = useRef(viewCountry);
+  useEffect(() => {
+    if (prevCountry.current !== viewCountry) {
+      prevCountry.current = viewCountry;
+      setGsi(null);
+      setAirspace(null);
+    }
+  }, [viewCountry]);
+
   useEffect(() => {
     void compute();
     timerRef.current = setInterval(() => void compute(), POLL_MS);
